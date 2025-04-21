@@ -1,1 +1,131 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #1d2f39;
+  color: #ffffff;
+  line-height: 1.6;
+}
+
+/* Header */
+header {
+  background-color: #384d5a;
+  text-align: center;
+  padding: 3rem 1rem;
+  border-bottom: 4px solid #ed1925;
+}
+
+.logo {
+  width: 100px;
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: #ed1925;
+}
+
+p {
+  font-size: 1.2rem;
+  margin: 1rem 0 2rem;
+  color: #ffffffcc;
+}
+
+/* Botão */
+.btn {
+  background-color: #ad131d;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #ed1925;
+}
+
+/* Containers */
+.container {
+  max-width: 960px;
+  margin: auto;
+  padding: 2rem;
+}
+
+/* Seções */
+.video-section,
+.prints-section,
+.analisar-section {
+  background-color: #263740;
+  padding: 4rem 1rem;
+  text-align: center;
+  border-top: 2px solid #384d5a;
+}
+
+.video-section h2,
+.prints-section h2,
+.analisar-section h2 {
+  font-size: 2rem;
+  color: #ffffff;
+  margin-bottom: 2rem;
+}
+
+/* Vídeo */
+video {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 2px solid #ed1925;
+}
+
+/* Prints */
+.prints {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.prints img {
+  width: 250px;
+  border-radius: 10px;
+  border: 2px solid #ed1925;
+  box-shadow: 0 0 10px #00000050;
+}
+
+/* Formulário */
+textarea {
+  width: 100%;
+  max-width: 700px;
+  height: 180px;
+  padding: 1rem;
+  border-radius: 10px;
+  border: none;
+  resize: none;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+form button {
+  width: auto;
+}
+
+/* Rodapé */
+footer {
+  background-color: #1d2f39;
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #ffffffaa;
+  border-top: 1px solid #384d5a;
+}
