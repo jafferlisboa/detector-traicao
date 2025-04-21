@@ -1,11 +1,55 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detector de Traição</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <h1>Deu certo!</h1>
+  <header>
+    <div class="container header-container">
+      <img src="/static/logo.png" alt="Logo" class="logo">
+      <h1>Descubra a Verdade</h1>
+      <p>A primeira Inteligência Artificial do Brasil capaz de identificar os padrões linguísticos mais comuns em casos de traição. Treinada com milhares de conversas reais de casais, infiéis e suspeitos, ela reconhece frases ambíguas, respostas evasivas, mudança de tom e microtraições ocultas nas entrelinhas.</p>
+      <a href="#analisar" class="btn">Testar Agora</a>
+    </div>
+  </header>
+
+  <section class="video-section">
+    <div class="container">
+      <h2>Como Funciona</h2>
+      <video controls poster="/static/capa-video.jpg">
+        <source src="/static/tutorial.mp4" type="video/mp4">
+      </video>
+    </div>
+  </section>
+
+  <section class="prints-section">
+    <div class="container">
+      <h2>Exemplos Reais</h2>
+      <div class="prints">
+        <img src="/static/print1.jpg" alt="Print 1">
+        <img src="/static/print2.jpg" alt="Print 2">
+        <img src="/static/print3.jpg" alt="Print 3">
+      </div>
+    </div>
+  </section>
+
+  <section class="analisar-section" id="analisar">
+    <div class="container">
+      <h2>Colar Conversa</h2>
+      <form>
+        <textarea placeholder="Cole aqui a conversa do WhatsApp" rows="10"></textarea>
+        <button type="submit" class="btn">Analisar</button>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Detector de Traição</p>
+    </div>
+  </footer>
 </body>
 </html>
-
