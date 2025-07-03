@@ -70,12 +70,6 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    return render_template("painel.html", session_id=current_user.username)
-
-# --- NOVA ROTA PARA INTEGRAR O QR DO WHATSAPP (NODE.JS) ---
-@app.route('/whatsapp-login')
-@login_required
-def whatsapp_login():
     user_id = current_user.username
     qr_code = None
     try:
@@ -90,7 +84,8 @@ def whatsapp_login():
     except Exception as e:
         print(f"Erro ao requisitar QR: {e}")
 
-    return render_template("whatsapp_login.html", qr_code=qr_code)
+    return render_template("painel.html", session_id=user_id, qr_code=qr_code)
+
 
 # --- ROTAS ANTIGAS DO QR LOCAL (PODEM SER REMOVIDAS SE QUISER) ---
 @app.route('/qr/<session_id>')
