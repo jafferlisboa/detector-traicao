@@ -85,7 +85,7 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    qr_code_url = f"http://SEU_NODE:3000/qrcode/{current_user.username}" # AJUSTE O ENDEREÇO se necessário
+    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}" # AJUSTE O ENDEREÇO se necessário
 
     # Busca a imagem do QR do Node e converte em base64
     qr_data_url = None
