@@ -85,15 +85,14 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}" # AJUSTE O ENDEREÇO se necessário
+    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
 
-    # Busca a imagem do QR do Node e converte em base64
     qr_data_url = None
     try:
-        r = requests.get(qr_code_url, timeout=5)
-        if r.status_code == 200:
-            qr_img_base64 = base64.b64encode(r.content).decode()
-            qr_data_url = f"data:image/png;base64,{qr_img_base64}"
+        r = requests.get(qr_code_url, timeout=10)
+        if r.status_code == 200 and r.headers.get('content-type') == 'application/json':
+            qrcode_base64 = r.json().get("qrcode")
+            qr_data_url = qrcode_base64  # Já é data URL pronto para usar no <img src="">
         else:
             qr_data_url = None
     except Exception:
