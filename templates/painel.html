@@ -1,0 +1,14 @@
+<!-- painel.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Painel - QR Code</title>
+</head>
+<body>
+    <h2>Olá, {{ session_id }}</h2>
+    <p>Escaneie o QR do seu WhatsApp:</p>
+    <img src="{{ url_for('mostrar_qr', session_id=session_id) }}" width="300">
+    <p><a href="/logout">Sair</a></p>
+</body>
+</html>
