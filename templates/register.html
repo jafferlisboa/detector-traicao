@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro - Síndico IA</title>
+</head>
+<body>
+    <h2>Cadastro</h2>
+    {% if erro %}<p style="color:red;">{{ erro }}</p>{% endif %}
+    <form method="POST">
+        <input type="text" name="username" placeholder="Novo usuário" required><br>
+        <input type="password" name="password" placeholder="Nova senha" required><br>
+        <button type="submit">Criar conta</button>
+    </form>
+    <p><a href="/">Voltar para o login</a></p>
+</body>
+</html>
