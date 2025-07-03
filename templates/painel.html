@@ -1,14 +1,23 @@
-<!-- painel.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Painel - QR Code</title>
+    <title>Painel do Síndico</title>
 </head>
 <body>
-    <h2>Olá, {{ session_id }}</h2>
-    <p>Escaneie o QR do seu WhatsApp:</p>
-    <img src="{{ url_for('mostrar_qr', session_id=session_id) }}" width="300">
+    <h2>Painel de Controle - {{ session_id }}</h2>
+
+    {% if qr_code %}
+        <div>
+            <h3>Login WhatsApp</h3>
+            <img src="{{ qr_code }}" alt="QR Code WhatsApp" />
+            <p>Abra o WhatsApp, vá em "Aparelhos conectados" e escaneie este QR.</p>
+        </div>
+    {% else %}
+        <p>QR Code não disponível no momento.</p>
+    {% endif %}
+
+    <!-- Aqui você pode adicionar mais funções do painel -->
+
     <p><a href="/logout">Sair</a></p>
 </body>
 </html>
