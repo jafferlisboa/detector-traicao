@@ -90,11 +90,8 @@ def painel():
     qr_data_url = None
     try:
         r = requests.get(qr_code_url, timeout=10)
-        if r.status_code == 200 and r.headers.get('content-type') == 'application/json':
-            qrcode_base64 = r.json().get("qrcode")
-            qr_data_url = qrcode_base64  # Já é data URL pronto para usar no <img src="">
-        else:
-            qr_data_url = None
+        qrcode_base64 = r.json().get("qrcode")
+        qr_data_url = qrcode_base64
     except Exception:
         qr_data_url = None
 
