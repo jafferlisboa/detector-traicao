@@ -68,7 +68,7 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    return redirect(url_for('mostrar_qr', session_id=current_user.username))
+    return render_template("painel.html", session_id=current_user.username)
 
 @app.route('/qr/<session_id>')
 @login_required
