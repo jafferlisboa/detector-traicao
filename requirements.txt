@@ -3,3 +3,4 @@ qrcode[pil]
 gunicorn
 Flask-Login
 Werkzeug
+psycopg2-binary
