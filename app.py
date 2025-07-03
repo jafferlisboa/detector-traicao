@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 import os
@@ -61,7 +62,19 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    return render_template("painel.html", session_id=current_user.username)
+    # Buscar o QR code do Node.js (supondo Node na mesma VPS na porta 3000)
+    try:
+        node_url = f"http://localhost:3000/qrcode/{current_user.username}"
+        r = requests.get(node_url, timeout=5)
+        if r.status_code == 200:
+            qr_img_base64 = r.content.encode("base64").decode()  # Se receber imagem binária
+            qr_data_url = f"data:image/png;base64,{qr_img_base64}"
+        else:
+            qr_data_url = None
+    except Exception as e:
+        qr_data_url = None
+
+    return render_template("painel.html", session_id=current_user.username, qr_code=qr_data_url)
 
 @app.route('/qr/<session_id>')
 @login_required
