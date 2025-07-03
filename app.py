@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+import requests
+import base64
 import os
-
-import openai # ou sua biblioteca IA favorita
+import openai  # ou sua biblioteca IA favorita
 
 app = Flask(__name__)
 app.secret_key = 'sua_chave_secreta'
@@ -14,7 +14,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = '/'
 
-# Configurações do Postgres
+# Configuração do Postgres
 DB_HOST = "dpg-d1jbjtje5dus73c2qe0g-a.oregon-postgres.render.com"
 DB_NAME = "condominio_db_9tut"
 DB_USER = "condominio_user"
@@ -45,13 +45,36 @@ def load_user(user_id):
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    # ... igual ao anterior ...
-    pass
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, username, password FROM users WHERE username = %s", (username,))
+        row = cur.fetchone()
+        conn.close()
+        if row and check_password_hash(row[2], password):
+            user = User(*row)
+            login_user(user)
+            return redirect(url_for('painel'))
+        return render_template('index.html', erro="Login inválido.")
+    return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # ... igual ao anterior ...
-    pass
+    if request.method == 'POST':
+        username = request.form['username']
+        password = generate_password_hash(request.form['password'])
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('login'))
+        except psycopg2.IntegrityError:
+            return render_template('register.html', erro="Usuário já existe.")
+    return render_template('register.html')
 
 @app.route('/logout')
 @login_required
@@ -62,51 +85,43 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    # Buscar o QR code do Node.js (supondo Node na mesma VPS na porta 3000)
+    qr_code_url = f"http://SEU_NODE:3000/qrcode/{current_user.username}" # AJUSTE O ENDEREÇO se necessário
+
+    # Busca a imagem do QR do Node e converte em base64
+    qr_data_url = None
     try:
-        node_url = f"http://localhost:3000/qrcode/{current_user.username}"
-        r = requests.get(node_url, timeout=5)
+        r = requests.get(qr_code_url, timeout=5)
         if r.status_code == 200:
-            qr_img_base64 = r.content.encode("base64").decode()  # Se receber imagem binária
+            qr_img_base64 = base64.b64encode(r.content).decode()
             qr_data_url = f"data:image/png;base64,{qr_img_base64}"
         else:
             qr_data_url = None
-    except Exception as e:
+    except Exception:
         qr_data_url = None
 
     return render_template("painel.html", session_id=current_user.username, qr_code=qr_data_url)
 
-@app.route('/qr/<session_id>')
-@login_required
-def mostrar_qr(session_id):
-    # Aqui pode buscar o QR code do Node.js se desejar mostrar durante login
-    pass
-
-# --- NOVO: Recebe mensagem do Node.js e responde usando IA ---
+# Rota que recebe mensagem do Node.js, processa na IA e devolve resposta
 @app.route("/whatsapp-message", methods=["POST"])
 def whatsapp_message():
     data = request.json
     user = data.get("user")
     texto = data.get("texto")
-    from_jid = data.get("from")
+    from_jid = data.get("from_jid")
 
     if not user or not texto:
-        return jsonify({"erro": "Dados ausentes"}), 400
+        return {"erro": "Dados ausentes"}, 400
 
-    # --- Chamar IA (exemplo com OpenAI) ---
     resposta = gerar_resposta_ia(texto, user)
-
-    return jsonify({"resposta": resposta})
+    return {"resposta": resposta}
 
 def gerar_resposta_ia(texto, user):
-    # Lógica customizada: pode usar usuário para personalizar
-    # Exemplo com OpenAI (substitua por seu modelo real):
     openai.api_key = "SUA_OPENAI_API_KEY"
     try:
         completion = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "Você é um assistente para um síndico."},
+                {"role": "system", "content": f"Você é um assistente para o síndico {user}."},
                 {"role": "user", "content": texto}
             ]
         )
@@ -114,7 +129,5 @@ def gerar_resposta_ia(texto, user):
     except Exception as e:
         return "Desculpe, ocorreu um erro ao gerar a resposta."
 
-# Outras rotas, cadastro, etc.
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)
