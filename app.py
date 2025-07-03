@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, os, qrcode, io
+import sqlite3, os, io
+import requests
+import qrcode
 
 app = Flask(__name__)
 app.secret_key = 'sua_chave_secreta'  # Mude para algo seguro
@@ -70,6 +72,27 @@ def logout():
 def painel():
     return render_template("painel.html", session_id=current_user.username)
 
+# --- NOVA ROTA PARA INTEGRAR O QR DO WHATSAPP (NODE.JS) ---
+@app.route('/whatsapp-login')
+@login_required
+def whatsapp_login():
+    user_id = current_user.username
+    qr_code = None
+    try:
+        # Troque o endereço para o IP público do seu Node.js se necessário!
+        response = requests.post(
+            "http://localhost:3000/start-session",
+            json={"userId": user_id},
+            timeout=15
+        )
+        response.raise_for_status()
+        qr_code = response.json().get("qrCode")
+    except Exception as e:
+        print(f"Erro ao requisitar QR: {e}")
+
+    return render_template("whatsapp_login.html", qr_code=qr_code)
+
+# --- ROTAS ANTIGAS DO QR LOCAL (PODEM SER REMOVIDAS SE QUISER) ---
 @app.route('/qr/<session_id>')
 @login_required
 def mostrar_qr(session_id):
