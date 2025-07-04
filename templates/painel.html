@@ -1,20 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Painel do Síndico</title>
+    <meta charset="UTF-8">
+    <title>Painel de Monitoramento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='painel.css') }}">
 </head>
 <body>
-    <h2>Painel de Controle - {{ session_id }}</h2>
+    <div class="container">
+        <h1>Painel de Monitoramento</h1>
+        <div class="topo">
+            <p><strong>Usuário:</strong> {{ session_id }}</p>
+            <p><strong>Plano:</strong> {{ plano }}</p>
+            <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
+            <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
+        </div>
 
-{% if qr_code %}
-    <h3>Escaneie o QR Code:</h3>
-    <img src="{{ qr_code }}" />
-{% else %}
-    <p>QR Code não disponível no momento.</p>
-{% endif %}
+        <hr>
 
-    <!-- Aqui você pode adicionar mais funções do painel -->
+        <h2>Filhos Monitorados</h2>
+        {% if filhos %}
+            <ul class="filho-lista">
+                {% for filho in filhos %}
+                    <li>
+                        <span>{{ filho.numero_whatsapp }}</span>
+                        <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}">
+                            <button type="submit" class="btn-excluir">Excluir</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Nenhum filho cadastrado ainda.</p>
+        {% endif %}
 
-    <p><a href="/logout">Sair</a></p>
+        {% if filhos|length < max_filhos %}
+            <h2>Adicionar Novo Filho</h2>
+            <form method="post" action="{{ url_for('adicionar_filho') }}">
+                <label for="nome">Nome do Filho:</label><br>
+                <input type="text" name="nome" required><br><br>
+
+                <label for="numero">Número do WhatsApp (somente números com DDI):</label><br>
+                <input type="text" name="numero" required><br><br>
+
+                <button type="submit">Gerar QR Code</button>
+            </form>
+
+            {% if qr_code %}
+                <div class="qrcode">
+                    <h3>Escaneie o QR Code com o celular do filho:</h3>
+                    <img src="{{ qr_code }}" alt="QR Code">
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="limite">Limite de filhos atingido para o seu plano.</p>
+        {% endif %}
+
+        <hr>
+        <p><a href="{{ url_for('logout') }}">Sair</a></p>
+    </div>
 </body>
 </html>
