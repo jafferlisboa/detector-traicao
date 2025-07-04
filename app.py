@@ -82,6 +82,12 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+from flask import render_template
+from flask_login import login_required, current_user
+import requests
+from . import app
+from .database import get_db
+
 @app.route('/painel')
 @login_required
 def painel():
@@ -105,14 +111,26 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
-    # Recupera o QR Code (se tiver)
-    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
+    # Verifica o status da sessão do WhatsApp
     qr_code = None
+    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
     try:
+        # Primeira tentativa: verificar se a sessão está ativa (sem forçar novo QR code)
         r = requests.get(qr_code_url, timeout=10)
-        qr_code = r.json().get("qrcode")
-    except Exception:
-        pass
+        response = r.json()
+
+        if "mensagem" in response and "Sessão já autenticada" in response["mensagem"]:
+            # Sessão ativa, não precisa de QR code
+            qr_code = None
+        elif "qrcode" in response:
+            # QR code retornado (sessão não autenticada)
+            qr_code = response["qrcode"]
+        else:
+            # Forçar novo QR code se a resposta for inesperada
+            r = requests.get(f"{qr_code_url}?force=true", timeout=10)
+            qr_code = r.json().get("qrcode")
+    except Exception as e:
+        print(f"Erro ao verificar QR code para {current_user.username}: {str(e)}")
 
     return render_template(
         "painel.html",
