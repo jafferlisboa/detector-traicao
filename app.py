@@ -228,68 +228,67 @@ def mensagem_recebida():
     return jsonify({"status": "mensagem salva com sucesso"})
 
 @app.route("/disparar-relatorios", methods=["GET"])
-   def disparar_relatorios():
-       conn = get_db()
-       cur = conn.cursor()
+def disparar_relatorios():
+    conn = get_db()
+    cur = conn.cursor()
 
-       cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
-       usuarios = cur.fetchall()
-       print(f"Usuários encontrados: {usuarios}")  # Depuração
+    cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+    usuarios = cur.fetchall()
+    print(f"Usuários encontrados: {usuarios}")  # Depuração
 
-       for user_id, whatsapp_pai, filhos in usuarios:
-           print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, filhos: {filhos}")  # Depuração
-           if not filhos:
-               continue
+    for user_id, whatsapp_pai, telefones_monitorados in usuarios:
+        print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
+        if not telefones_monitorados:
+            continue
 
-           for filho in filhos:
-               numero_filho = filho
-               cur.execute("""
-                   SELECT conteudo, horario FROM mensagens_monitoradas
-                   WHERE numero_filho = %s AND tipo = 'recebida'
-                   ORDER BY horario DESC
-               """, (numero_filho,))
-               mensagens = cur.fetchall()
-               print(f"Mensagens para {numero_filho}: {mensagens}")  # Depuração
+        for numero_filho in telefones_monitorados:
+            cur.execute("""
+                SELECT conteudo, horario FROM mensagens_monitoradas
+                WHERE numero_filho = %s AND tipo = 'recebida'
+                ORDER BY horario DESC
+            """, (numero_filho,))
+            mensagens = cur.fetchall()
+            print(f"Mensagens para {numero_filho}: {mensagens}")  # Depuração
 
-               if not mensagens:
-                   continue
+            if not mensagens:
+                continue
 
-               corpo = f"Relatório de mensagens do número {numero_filho}:\n"
-               for conteudo, horario in mensagens:
-                   corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
-               print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
+            corpo = f"Relatório de mensagens do número {numero_filho}:\n"
+            for conteudo, horario in mensagens:
+                corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
+            print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
 
-               whatsapp_pai = whatsapp_pai.strip()
-               if not whatsapp_pai.startswith("+"):
-                   whatsapp_pai = "+" + whatsapp_pai
+            whatsapp_pai = whatsapp_pai.strip()
+            if not whatsapp_pai.startswith("+"):
+                whatsapp_pai = "+" + whatsapp_pai
 
-               # Pular envio se whatsapp_pai for igual ao numero_filho (teste)
-               if whatsapp_pai == numero_filho:
-                   print(f"Pulando envio: whatsapp_pai ({whatsapp_pai}) é igual ao numero_filho ({numero_filho})")
-                   continue
+            # Pular envio se whatsapp_pai for igual ao numero_filho (teste)
+            if whatsapp_pai == numero_filho:
+                print(f"Pulando envio: whatsapp_pai ({whatsapp_pai}) é igual ao numero_filho ({numero_filho})")
+                continue
 
-               try:
-                   response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
-                       "numero_destino": whatsapp_pai,
-                       "mensagem": corpo
-                   }, timeout=10)
-                   response.raise_for_status()
-                   print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
-                   cur.execute("""
-                       DELETE FROM mensagens_monitoradas
-                       WHERE numero_filho = %s AND tipo = 'recebida'
-                   """, (numero_filho,))
-                   conn.commit()
-               except Exception as e:
-                   print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
-                   cur.execute("""
-                       INSERT INTO log_erros (usuario_id, erro, data)
-                       VALUES (%s, %s, %s)
-                   """, (user_id, str(e), datetime.now()))
-                   conn.commit()
+            try:
+                response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
+                    "numero_destino": whatsapp_pai,
+                    "mensagem": corpo
+                }, timeout=10)
+                response.raise_for_status()
+                print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
+                cur.execute("""
+                    DELETE FROM mensagens_monitoradas
+                    WHERE numero_filho = %s AND tipo = 'recebida'
+                """, (numero_filho,))
+                conn.commit()
+            except Exception as e:
+                print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
+                cur.execute("""
+                    INSERT INTO log_erros (usuario_id, erro, data)
+                    VALUES (%s, %s, %s)
+                """, (user_id, str(e), datetime.now()))
+                conn.commit()
 
-       conn.close()
-       return jsonify({"status": "relatórios processados"})
+    conn.close()
+    return jsonify({"status": "relatórios processados"})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
