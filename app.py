@@ -122,6 +122,67 @@ def painel():
         qr_code=qr_code
     )
 
+@app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
+@login_required
+def excluir_filho(filho_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Busca os números monitorados atuais
+    cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    resultado = cur.fetchone()
+    if not resultado:
+        conn.close()
+        return redirect(url_for("painel"))
+
+    filhos = resultado[0] or []
+    if filho_id <= len(filhos):
+        del filhos[filho_id - 1]  # Remove o filho pelo índice
+        cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
+        conn.commit()
+
+    conn.close()
+    return redirect(url_for("painel"))
+
+@app.route("/adicionar-filho", methods=["POST"])
+@login_required
+def adicionar_filho():
+    nome = request.form["nome"]
+    numero = request.form["numero"]
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Busca os filhos atuais
+    cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    resultado = cur.fetchone()
+    filhos = resultado[0] if resultado and resultado[0] else []
+
+    # Limite de filhos por plano
+    cur.execute("SELECT plano FROM usuarios WHERE id = %s", (current_user.id,))
+    plano = cur.fetchone()[0]
+    max_filhos = 1 if plano == "Gratuito" else 10  # ajuste os limites conforme seu sistema
+
+    if len(filhos) >= max_filhos:
+        conn.close()
+        return render_template("painel.html", erro="Limite de filhos atingido.", session_id=current_user.username, plano=plano, filhos=filhos, max_filhos=max_filhos)
+
+    # Adiciona novo filho
+    novo_filho = {"nome": nome, "numero_whatsapp": numero}
+    filhos.append(novo_filho)
+    cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
+    conn.commit()
+    conn.close()
+
+    # Requisição do QR Code
+    try:
+        qr_response = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}", timeout=10)
+        qr_code = qr_response.json().get("qrcode")
+    except Exception:
+        qr_code = None
+
+    return render_template("painel.html", session_id=current_user.username, plano=plano, filhos=filhos, max_filhos=max_filhos, qr_code=qr_code)
+
 @app.route("/whatsapp-message", methods=["POST"])
 def whatsapp_message():
     data = request.json
