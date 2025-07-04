@@ -271,7 +271,7 @@ def disparar_relatorios():
                 print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
                 cur.execute("""
                     DELETE FROM mensagens_monitoradas
-                    WHERE numero_filho = %s AND tipo = 'recebida'
+                    WHERE numero_filho = %s
                 """, (numero_filho,))
                 conn.commit()
             except Exception as e:
