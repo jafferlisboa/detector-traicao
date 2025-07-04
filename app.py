@@ -262,11 +262,6 @@ def disparar_relatorios():
             if not whatsapp_pai.startswith("+"):
                 whatsapp_pai = "+" + whatsapp_pai
 
-            # Pular envio se whatsapp_pai for igual ao numero_filho (teste)
-            if whatsapp_pai == numero_filho:
-                print(f"Pulando envio: whatsapp_pai ({whatsapp_pai}) é igual ao numero_filho ({numero_filho})")
-                continue
-
             try:
                 response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
                     "numero_destino": whatsapp_pai,
