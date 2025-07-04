@@ -213,6 +213,10 @@ def mensagem_recebida():
     if tipo not in ["recebida", "enviada"]:
         return jsonify({"erro": "tipo inválido"}), 400
 
+    if tipo == "recebida" and numero_contato == "+5567992342051":
+        conn.close()
+        return jsonify({"status": "mensagem ignorada (destinatário oficial)"})
+    
     cur.execute("""
     INSERT INTO mensagens_monitoradas (
         numero_filho, tipo, numero_contato, conteudo, horario
