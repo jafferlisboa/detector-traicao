@@ -238,13 +238,10 @@ def disparar_relatorios():
 
     for user_id, whatsapp_pai, telefones_monitorados in usuarios:
         print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
-        if not telefones_monitorados:
-            continue
-
         for numero_filho in telefones_monitorados:
             cur.execute("""
                 SELECT conteudo, horario FROM mensagens_monitoradas
-                WHERE numero_filho = %s
+                WHERE numero_filho = """ + numero_filho + """
                 ORDER BY horario DESC
             """, (numero_filho,))
             mensagens = cur.fetchall()
