@@ -189,64 +189,56 @@ def whatsapp_message():
     user = data.get("user")
     texto = data.get("texto")
     from_jid = data.get("from")
+    resposta = texto
 
-    # Aqui você pode implementar lógica de inteligência artificial, por exemplo, usando OpenAI
-    resposta = gerar_resposta_ia(texto, user)
-
-    # Salva a mensagem no banco de dados
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, whatsapp_oficial) VALUES (%s, %s, %s, %s, %s)",
-                (from_jid, 'recebida', user, texto, '5567992342051'))  # O WhatsApp Oficial do sistema
+
+    cur.execute("""
+        INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, whatsapp_oficial)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (
+        from_jid, 'recebida', user, texto, '5567992342051'
+    ))
+
     conn.commit()
     conn.close()
-
     return jsonify({"resposta": resposta})
 
-def gerar_resposta_ia(texto, user):
-    openai.api_key = "SUA_OPENAI_API_KEY"
-    try:
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": f"Você é um assistente para o síndico {user}."},
-                {"role": "user", "content": texto}
-            ]
-        )
-        return completion.choices[0].message.content
-    except Exception as e:
-        return "Desculpe, ocorreu um erro ao gerar a resposta."
-
-# Rota para acessar as mensagens monitoradas a cada 5 minutos
-@app.route("/relatorio-pai", methods=["GET"])
-def relatorio_pai():
-    # Recupera as mensagens dos filhos para enviar para o WhatsApp do pai
+@app.route("/disparar-relatorios", methods=["GET"])
+def disparar_relatorios():
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM mensagens_monitoradas WHERE whatsapp_oficial = %s", ('5567992342051',))  # WhatsApp Oficial
+
+    # Busca todas as mensagens recebidas
+    cur.execute("""
+        SELECT numero_filho, conteudo FROM mensagens_monitoradas
+        WHERE whatsapp_oficial = %s AND tipo = 'recebida'
+    """, ('5567992342051',))
+
     mensagens = cur.fetchall()
-    conn.close()
 
-    # Organiza as mensagens (por exemplo, por filho)
+    # Organiza mensagens por filho
     mensagens_por_filho = {}
-    for msg in mensagens:
-        nome_filho = msg[0]  # Número do filho (adapte conforme seu banco de dados)
-        if nome_filho not in mensagens_por_filho:
-            mensagens_por_filho[nome_filho] = []
-        mensagens_por_filho[nome_filho].append(msg[3])  # Adiciona o conteúdo da mensagem
+    for numero_filho, conteudo in mensagens:
+        if numero_filho not in mensagens_por_filho:
+            mensagens_por_filho[numero_filho] = []
+        mensagens_por_filho[numero_filho].append(conteudo)
 
-    # Aqui, você pode enviar o relatório via WhatsApp para o pai
-    for nome_filho, msgs in mensagens_por_filho.items():
-        mensagens_combinadas = "\n".join(msgs)
-        enviar_para_pai('5567992342051', f"Relatório de mensagens do(a) {nome_filho}:\n{mensagens_combinadas}")
+    # Envia relatório para o número do pai
+    for numero_filho, mensagens_filho in mensagens_por_filho.items():
+        corpo_mensagem = f"Relatório de mensagens do(a) {numero_filho}:\n" + "\n".join(mensagens_filho)
 
+        try:
+            requests.post("http://localhost:3000/enviar-relatorio", json={
+                "numero_destino": "5567992342051",
+                "mensagem": corpo_mensagem
+            })
+        except Exception as e:
+            print("Erro ao enviar relatório via Node:", e)
+
+    conn.close()
     return jsonify({"status": "relatório enviado com sucesso"})
-
-def enviar_para_pai(whatsapp_pai, mensagem):
-    # Função para enviar mensagem ao WhatsApp do pai (via WhatsApp oficial)
-    # Aqui você pode integrar com seu sistema para enviar a mensagem
-    print(f"Enviando mensagem para o WhatsApp {whatsapp_pai}: {mensagem}")
-    # Adicione aqui a integração com a API do WhatsApp para envio
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
