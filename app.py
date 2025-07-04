@@ -183,62 +183,70 @@ def adicionar_filho():
 
     return render_template("painel.html", session_id=current_user.username, plano=plano, filhos=filhos, max_filhos=max_filhos, qr_code=qr_code)
 
-@app.route("/whatsapp-message", methods=["POST"])
-def whatsapp_message():
-    data = request.json
-    user = data.get("user")
-    texto = data.get("texto")
-    from_jid = data.get("from")
-    resposta = texto
+@app.route("/mensagem-recebida", methods=["POST"])
+def mensagem_recebida():
+    data = request.get_json()
+    numero_filho = data.get("de")
+    numero_contato = data.get("para")
+    conteudo = data.get("texto")
+    horario = data.get("horario")
+
+    if not numero_filho or not numero_contato or not conteudo:
+        return jsonify({"erro": "dados incompletos"}), 400
 
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("""
-        INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, whatsapp_oficial)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (
-        from_jid, 'recebida', user, texto, '5567992342051'
-    ))
-
+        INSERT INTO mensagens_monitoradas (
+            numero_filho, tipo, numero_contato, conteudo, horario
+        ) VALUES (%s, %s, %s, %s, %s)
+    """, (numero_filho, 'recebida', numero_contato, conteudo, horario))
     conn.commit()
     conn.close()
-    return jsonify({"resposta": resposta})
+
+    return jsonify({"status": "mensagem salva com sucesso"})
 
 @app.route("/disparar-relatorios", methods=["GET"])
 def disparar_relatorios():
     conn = get_db()
     cur = conn.cursor()
 
-    # Busca todas as mensagens recebidas
-    cur.execute("""
-        SELECT numero_filho, conteudo FROM mensagens_monitoradas
-        WHERE whatsapp_oficial = %s AND tipo = 'recebida'
-    """, ('5567992342051',))
+    # Seleciona todos os usuários com seus filhos e WhatsApp do pai
+    cur.execute("SELECT whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+    usuarios = cur.fetchall()
 
-    mensagens = cur.fetchall()
+    for whatsapp_pai, filhos in usuarios:
+        if not filhos or len(filhos) == 0:
+            continue
 
-    # Organiza mensagens por filho
-    mensagens_por_filho = {}
-    for numero_filho, conteudo in mensagens:
-        if numero_filho not in mensagens_por_filho:
-            mensagens_por_filho[numero_filho] = []
-        mensagens_por_filho[numero_filho].append(conteudo)
+        for filho in filhos:
+            numero_filho = filho if isinstance(filho, str) else filho.get("numero_whatsapp", "")
+            if not numero_filho:
+                continue
 
-    # Envia relatório para o número do pai
-    for numero_filho, mensagens_filho in mensagens_por_filho.items():
-        corpo_mensagem = f"Relatório de mensagens do(a) {numero_filho}:\n" + "\n".join(mensagens_filho)
+            # Busca mensagens do filho
+            cur.execute("""
+                SELECT conteudo FROM mensagens_monitoradas
+                WHERE numero_filho = %s AND tipo = 'recebida'
+            """, (numero_filho,))
+            mensagens = cur.fetchall()
 
-        try:
-            requests.post("http://localhost:3000/enviar-relatorio", json={
-                "numero_destino": "5567992342051",
-                "mensagem": corpo_mensagem
-            })
-        except Exception as e:
-            print("Erro ao enviar relatório via Node:", e)
+            if not mensagens:
+                continue
+
+            conteudos = [m[0] for m in mensagens]
+            corpo = f"Relatório de mensagens do número {numero_filho}:\n" + "\n".join(conteudos)
+
+            try:
+                requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
+                    "numero_destino": whatsapp_pai,
+                    "mensagem": corpo
+                })
+            except Exception as e:
+                print(f"Erro ao enviar relatório para {whatsapp_pai}: {e}")
 
     conn.close()
-    return jsonify({"status": "relatório enviado com sucesso"})
+    return jsonify({"status": "relatórios enviados com sucesso"})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
