@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <title>Painel de Monitoramento</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='painel.css') }}">
+    <style>
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .topo { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .filho-lista { list-style: none; padding: 0; }
+        .filho-lista li { display: flex; justify-content: space-between; margin: 10px 0; }
+        .btn-excluir { background: red; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+        .qrcode { margin-top: 20px; text-align: center; }
+        .limite { color: red; }
+        .mensagem { color: green; }
+        .erro { color: red; }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -11,7 +22,7 @@
         <div class="topo">
             <p><strong>Usuário:</strong> {{ session_id }}</p>
             <p><strong>Plano:</strong> {{ plano }}</p>
-            <p><strong>Filhos permitidos:</strong></p>
+            <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
             <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
         </div>
 
@@ -36,23 +47,29 @@
         {% if filhos|length < max_filhos %}
             <h2>Adicionar Novo Filho</h2>
             <form method="post" action="{{ url_for('adicionar_filho') }}">
-                <label for="nome">Nome do Filho:</label><br>
-                <input type="text" name="nome" required><br><br>
-
-                <label for="numero">Número do WhatsApp (somente números com DDI):</label><br>
+                <label for="numero">Número do WhatsApp (com DDI, ex.: +551234567890):</label><br>
                 <input type="text" name="numero" required><br><br>
-
-                <button type="submit">Gerar QR Code</button>
+                <button type="submit">Adicionar e Gerar QR Code</button>
             </form>
-
-            {% if qr_code %}
-                <div class="qrcode">
-                    <h3>Escaneie o QR Code com o celular do filho:</h3>
-                    <img src="{{ qr_code }}" alt="QR Code">
-                </div>
-            {% endif %}
         {% else %}
             <p class="limite">Limite de filhos atingido para o seu plano.</p>
+        {% endif %}
+
+        {% if mensagem %}
+            <p class="mensagem">{{ mensagem }}</p>
+        {% endif %}
+
+        {% if erro %}
+            <p class="erro">{{ erro }}</p>
+        {% endif %}
+
+        {% if qr_code %}
+            <div class="qrcode">
+                <h3>Escaneie o QR Code com o celular do filho:</h3>
+                <img src="{{ qr_code }}" alt="QR Code">
+            </div>
+        {% elif not mensagem %}
+            <p>Sessão WhatsApp do pai já autenticada ou aguardando autenticação.</p>
         {% endif %}
 
         <hr>
