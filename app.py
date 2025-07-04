@@ -194,8 +194,8 @@ def adicionar_filho():
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
     data = request.get_json()
-    numero_filho = data.get("de")
-    numero_contato = data.get("para")
+    numero_filho = data.get("de").split('@')[0]
+    numero_contato = data.get("para").split('@')[0]
     conteudo = data.get("texto")
     horario_str = data.get("horario")
 
