@@ -4,7 +4,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from datetime import datetime
 import requests
-import openai  # ou sua biblioteca IA favorita
 
 app = Flask(__name__)
 app.secret_key = 'ALkcjYhUd876887FHnnfhfhYTd77f677f_f746HJcufiks8Mjs'
@@ -36,6 +35,7 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     conn = get_db()
+    cur Pandora: 0
     cur = conn.cursor()
     cur.execute("SELECT id, username, password FROM usuarios WHERE id = %s", (user_id,))
     row = cur.fetchone()
@@ -68,7 +68,7 @@ def register():
             conn = get_db()
             cur = conn.cursor()
             cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados) VALUES (%s, %s, %s, %s, %s)",
-                        (username, password, 'Gratuito', 'whatsapp_pai', ['whatsapp_filho1', 'whatsapp_filho2']))
+                        (username, password, 'Gratuito', username, []))
             conn.commit()
             conn.close()
             return redirect(url_for('login'))
@@ -82,12 +82,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-from flask import render_template
-from flask_login import login_required, current_user
-import requests
-from . import app
-from .database import get_db
-
 @app.route('/painel')
 @login_required
 def painel():
@@ -95,12 +89,13 @@ def painel():
     cur = conn.cursor()
 
     # Recupera dados do usuário logado
-    cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
     conn.close()
 
     plano = row[0]
     filhos_raw = row[1] or []
+    whatsapp_pai = row[2]
     filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
 
     # Define o limite de filhos com base no plano
@@ -111,30 +106,20 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
-    # Verifica o status da sessão do WhatsApp
+    # Verifica o status da sessão do WhatsApp do pai
     qr_code = None
-    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
+    qr_code_url = f"http://147.93.4.219:3000/qrcode/{whatsapp_pai}"
     try:
-        # Primeira tentativa: verificar se a sessão está ativa (sem forçar novo QR code)
         r = requests.get(qr_code_url, timeout=10)
         response = r.json()
-
-        if "mensagem" in response and "Sessão já autenticada" in response["mensagem"]:
-            # Sessão ativa, não precisa de QR code
-            qr_code = None
-        elif "qrcode" in response:
-            # QR code retornado (sessão não autenticada)
+        if "qrcode" in response:
             qr_code = response["qrcode"]
-        else:
-            # Forçar novo QR code se a resposta for inesperada
-            r = requests.get(f"{qr_code_url}?force=true", timeout=10)
-            qr_code = r.json().get("qrcode")
     except Exception as e:
-        print(f"Erro ao verificar QR code para {current_user.username}: {str(e)}")
+        print(f"Erro ao verificar QR code para {whatsapp_pai}: {str(e)}")
 
     return render_template(
         "painel.html",
-        session_id=current_user.username,
+        session_id=whatsapp_pai,
         plano=plano,
         filhos=filhos,
         max_filhos=max_filhos,
@@ -147,7 +132,6 @@ def excluir_filho(filho_id):
     conn = get_db()
     cur = conn.cursor()
 
-    # Busca os números monitorados atuais
     cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     if not resultado:
@@ -156,7 +140,7 @@ def excluir_filho(filho_id):
 
     filhos = resultado[0] or []
     if filho_id <= len(filhos):
-        del filhos[filho_id - 1]  # Remove o filho pelo índice
+        del filhos[filho_id - 1]
         cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
         conn.commit()
 
@@ -166,41 +150,59 @@ def excluir_filho(filho_id):
 @app.route("/adicionar-filho", methods=["POST"])
 @login_required
 def adicionar_filho():
-    nome = request.form["nome"]
     numero = request.form["numero"]
-
     conn = get_db()
     cur = conn.cursor()
 
-    # Busca os filhos atuais
-    cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
-    filhos = resultado[0] if resultado and resultado[0] else []
+    plano = resultado[0]
+    filhos = resultado[1] or []
 
-    # Limite de filhos por plano
-    cur.execute("SELECT plano FROM usuarios WHERE id = %s", (current_user.id,))
-    plano = cur.fetchone()[0]
-    max_filhos = 1 if plano == "Gratuito" else 10  # ajuste os limites conforme seu sistema
+    limites = {
+        "Gratuito": 1,
+        "Básico": 3,
+        "Premium": 10
+    }
+    max_filhos = limites.get(plano, 1)
 
     if len(filhos) >= max_filhos:
         conn.close()
-        return render_template("painel.html", erro="Limite de filhos atingido.", session_id=current_user.username, plano=plano, filhos=filhos, max_filhos=max_filhos)
+        return render_template(
+            "painel.html",
+            erro="Limite de filhos atingido.",
+            session_id=current_user.username,
+            plano=plano,
+            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            max_filhos=max_filhos,
+            qr_code=None
+        )
 
-    # Adiciona novo filho
-    novo_filho = {"nome": nome, "numero_whatsapp": numero}
-    filhos.append(novo_filho)
+    # Adiciona o número do filho
+    filhos.append(numero)
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
     conn.commit()
     conn.close()
 
-    # Requisição do QR Code
+    # Gera novo QR code para o filho
+    qr_code = None
+    qr_code_url = f"http://147.93.4.219:3000/qrcode/{numero}?force=true"
     try:
-        qr_response = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}", timeout=10)
-        qr_code = qr_response.json().get("qrcode")
-    except Exception:
-        qr_code = None
+        r = requests.get(qr_code_url, timeout=10)
+        response = r.json()
+        qr_code = response.get("qrcode")
+    except Exception as e:
+        print(f"Erro ao gerar QR code para {numero}: {str(e)}")
 
-    return render_template("painel.html", session_id=current_user.username, plano=plano, filhos=filhos, max_filhos=max_filhos, qr_code=qr_code)
+    return render_template(
+        "painel.html",
+        session_id=current_user.username,
+        plano=plano,
+        filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+        max_filhos=max_filhos,
+        qr_code=qr_code,
+        mensagem=f"Novo filho {numero} adicionado. Escaneie o QR code, se disponível."
+    )
 
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
@@ -210,11 +212,10 @@ def mensagem_recebida():
     conteudo = data.get("texto")
     horario_str = data.get("horario")
 
-    if not numero_filho or not numero_contato or not conteudo or not horario_str:
+    if not all([numero_filho, numero_contato, conteudo, horario_str]):
         return jsonify({"erro": "dados incompletos"}), 400
 
     try:
-        # Converte string ISO para objeto datetime (substitui o 'Z' por fuso horário UTC)
         horario = datetime.fromisoformat(horario_str.replace("Z", "+00:00"))
     except Exception as e:
         return jsonify({"erro": f"formato de horário inválido: {str(e)}"}), 400
@@ -236,39 +237,39 @@ def disparar_relatorios():
     conn = get_db()
     cur = conn.cursor()
 
-    # Seleciona todos os usuários com seus filhos e WhatsApp do pai
-    cur.execute("SELECT whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+    cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
     usuarios = cur.fetchall()
 
-    for whatsapp_pai, filhos in usuarios:
-        if not filhos or len(filhos) == 0:
+    for user_id, whatsapp_pai, filhos in usuarios:
+        if not filhos:
             continue
 
         for filho in filhos:
-            numero_filho = filho if isinstance(filho, str) else filho.get("numero_whatsapp", "")
-            if not numero_filho:
-                continue
-
-            # Busca mensagens do filho
+            numero_filho = filho
             cur.execute("""
-                SELECT conteudo FROM mensagens_monitoradas
+                SELECT conteudo, horario FROM mensagens_monitoradas
                 WHERE numero_filho = %s AND tipo = 'recebida'
+                ORDER BY horario DESC
             """, (numero_filho,))
             mensagens = cur.fetchall()
 
             if not mensagens:
                 continue
 
-            conteudos = [m[0] for m in mensagens]
-            corpo = f"Relatório de mensagens do número {numero_filho}:\n" + "\n".join(conteudos)
+            # Formata o relatório
+            corpo = f"Relatório de mensagens do número {numero_filho}:\n"
+            for conteudo, horario in mensagens:
+                corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
 
             try:
-                requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
+                response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
                     "numero_destino": whatsapp_pai,
                     "mensagem": corpo
-                })
+                }, timeout=10)
+                response.raise_for_status()
+                print(f"Relatório enviado para {whatsapp_pai}")
             except Exception as e:
-                print(f"Erro ao enviar relatório para {whatsapp_pai}: {e}")
+                print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
 
     conn.close()
     return jsonify({"status": "relatórios enviados com sucesso"})
