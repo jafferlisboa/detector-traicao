@@ -2,8 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, a
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
+import re
 
 app = Flask(__name__)
 app.secret_key = 'ALkcjYhUd876887FHnnfhfhYTd77f677f_f746HJcufiks8Mjs'
@@ -35,7 +36,6 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     conn = get_db()
-    cur Pandora: 0
     cur = conn.cursor()
     cur.execute("SELECT id, username, password FROM usuarios WHERE id = %s", (user_id,))
     row = cur.fetchone()
@@ -88,7 +88,6 @@ def painel():
     conn = get_db()
     cur = conn.cursor()
 
-    # Recupera dados do usuário logado
     cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
     conn.close()
@@ -98,7 +97,6 @@ def painel():
     whatsapp_pai = row[2]
     filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
 
-    # Define o limite de filhos com base no plano
     limites = {
         "Gratuito": 1,
         "Básico": 3,
@@ -106,17 +104,8 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
-    # Verifica o status da sessão do WhatsApp do pai
     qr_code = None
-    qr_code_url = f"http://147.93.4.219:3000/qrcode/{whatsapp_pai}"
-    try:
-        r = requests.get(qr_code_url, timeout=10)
-        response = r.json()
-        if "qrcode" in response:
-            qr_code = response["qrcode"]
-    except Exception as e:
-        print(f"Erro ao verificar QR code para {whatsapp_pai}: {str(e)}")
-
+    # Não gera QR code para o pai na rota /painel
     return render_template(
         "painel.html",
         session_id=whatsapp_pai,
@@ -178,13 +167,11 @@ def adicionar_filho():
             qr_code=None
         )
 
-    # Adiciona o número do filho
     filhos.append(numero)
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
     conn.commit()
     conn.close()
 
-    # Gera novo QR code para o filho
     qr_code = None
     qr_code_url = f"http://147.93.4.219:3000/qrcode/{numero}?force=true"
     try:
@@ -256,7 +243,6 @@ def disparar_relatorios():
             if not mensagens:
                 continue
 
-            # Formata o relatório
             corpo = f"Relatório de mensagens do número {numero_filho}:\n"
             for conteudo, horario in mensagens:
                 corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
@@ -268,8 +254,19 @@ def disparar_relatorios():
                 }, timeout=10)
                 response.raise_for_status()
                 print(f"Relatório enviado para {whatsapp_pai}")
+                # Limpar mensagens do filho após envio
+                cur.execute("""
+                    DELETE FROM mensagens_monitoradas
+                    WHERE numero_filho = %s AND tipo = 'recebida'
+                """, (numero_filho,))
+                conn.commit()
             except Exception as e:
                 print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
+                cur.execute("""
+                    INSERT INTO log_erros (usuario_id, erro, data)
+                    VALUES (%s, %s, %s)
+                """, (user_id, str(e), datetime.now()))
+                conn.commit()
 
     conn.close()
     return jsonify({"status": "relatórios enviados com sucesso"})
