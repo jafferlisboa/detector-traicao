@@ -17,10 +17,19 @@ body {
 
 h1, h2, h3 {
     color: #333;
+    margin-bottom: 15px;
+}
+
+.topo {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
 
 .topo p {
-    margin: 5px 0;
+    margin: 5px 10px;
+    font-size: 16px;
 }
 
 .filho-lista {
@@ -36,6 +45,7 @@ h1, h2, h3 {
     padding: 10px;
     margin: 8px 0;
     border-radius: 6px;
+    font-size: 16px;
 }
 
 .btn-excluir {
@@ -44,46 +54,3 @@ h1, h2, h3 {
     border: none;
     padding: 6px 12px;
     border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-excluir:hover {
-    background-color: #c0392b;
-}
-
-input[type="text"] {
-    width: 100%;
-    padding: 8px;
-    margin-top: 4px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-button[type="submit"] {
-    background-color: #2ecc71;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-button[type="submit"]:hover {
-    background-color: #27ae60;
-}
-
-.qrcode {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.qrcode img {
-    max-width: 300px;
-    margin-top: 10px;
-}
-
-.limite {
-    color: red;
-    font-weight: bold;
-}
