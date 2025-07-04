@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, a
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+from datetime import datetime
 import requests
 import openai  # ou sua biblioteca IA favorita
 
@@ -189,10 +190,16 @@ def mensagem_recebida():
     numero_filho = data.get("de")
     numero_contato = data.get("para")
     conteudo = data.get("texto")
-    horario = data.get("horario")
+    horario_str = data.get("horario")
 
-    if not numero_filho or not numero_contato or not conteudo:
+    if not numero_filho or not numero_contato or not conteudo or not horario_str:
         return jsonify({"erro": "dados incompletos"}), 400
+
+    try:
+        # Converte string ISO para objeto datetime (substitui o 'Z' por fuso horário UTC)
+        horario = datetime.fromisoformat(horario_str.replace("Z", "+00:00"))
+    except Exception as e:
+        return jsonify({"erro": f"formato de horário inválido: {str(e)}"}), 400
 
     conn = get_db()
     cur = conn.cursor()
