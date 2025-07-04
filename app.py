@@ -84,18 +84,43 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
-    # Exemplo de geração do QR Code e exibição na tela
-    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
+    conn = get_db()
+    cur = conn.cursor()
 
-    qr_data_url = None
+    # Recupera dados do usuário logado
+    cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    row = cur.fetchone()
+    conn.close()
+
+    plano = row[0]
+    filhos_raw = row[1] or []
+    filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
+
+    # Define o limite de filhos com base no plano
+    limites = {
+        "Gratuito": 1,
+        "Básico": 3,
+        "Premium": 10
+    }
+    max_filhos = limites.get(plano, 1)
+
+    # Recupera o QR Code (se tiver)
+    qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
+    qr_code = None
     try:
         r = requests.get(qr_code_url, timeout=10)
-        qrcode_base64 = r.json().get("qrcode")
-        qr_data_url = qrcode_base64
+        qr_code = r.json().get("qrcode")
     except Exception:
-        qr_data_url = None
+        pass
 
-    return render_template("painel.html", session_id=current_user.username, qr_code=qr_data_url)
+    return render_template(
+        "painel.html",
+        session_id=current_user.username,
+        plano=plano,
+        filhos=filhos,
+        max_filhos=max_filhos,
+        qr_code=qr_code
+    )
 
 @app.route("/whatsapp-message", methods=["POST"])
 def whatsapp_message():
