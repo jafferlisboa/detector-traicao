@@ -1,13 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, abort, send_file, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 import requests
-import base64
-import os
 import openai  # ou sua biblioteca IA favorita
 
-app = Flask(__name__)
+app = Flask(_name_)
 app.secret_key = 'sua_chave_secreta'
 
 login_manager = LoginManager()
@@ -29,7 +27,7 @@ def get_db():
     )
 
 class User(UserMixin):
-    def __init__(self, id, username, password_hash):
+    def _init_(self, id, username, password_hash):
         self.id = id
         self.username = username
         self.password_hash = password_hash
@@ -38,7 +36,7 @@ class User(UserMixin):
 def load_user(user_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, username, password FROM users WHERE id = %s", (user_id,))
+    cur.execute("SELECT id, username, password FROM usuarios WHERE id = %s", (user_id,))
     row = cur.fetchone()
     conn.close()
     return User(*row) if row else None
@@ -50,7 +48,7 @@ def login():
         password = request.form['password']
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id, username, password FROM users WHERE username = %s", (username,))
+        cur.execute("SELECT id, username, password FROM usuarios WHERE username = %s", (username,))
         row = cur.fetchone()
         conn.close()
         if row and check_password_hash(row[2], password):
@@ -68,7 +66,8 @@ def register():
         try:
             conn = get_db()
             cur = conn.cursor()
-            cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+            cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados) VALUES (%s, %s, %s, %s, %s)",
+                        (username, password, 'Gratuito', 'whatsapp_pai', ['whatsapp_filho1', 'whatsapp_filho2']))
             conn.commit()
             conn.close()
             return redirect(url_for('login'))
@@ -85,6 +84,7 @@ def logout():
 @app.route('/painel')
 @login_required
 def painel():
+    # Exemplo de geração do QR Code e exibição na tela
     qr_code_url = f"http://147.93.4.219:3000/qrcode/{current_user.username}"
 
     qr_data_url = None
@@ -97,19 +97,25 @@ def painel():
 
     return render_template("painel.html", session_id=current_user.username, qr_code=qr_data_url)
 
-# Rota que recebe mensagem do Node.js, processa na IA e devolve resposta
 @app.route("/whatsapp-message", methods=["POST"])
 def whatsapp_message():
     data = request.json
     user = data.get("user")
     texto = data.get("texto")
-    from_jid = data.get("from_jid")
+    from_jid = data.get("from")
 
-    if not user or not texto:
-        return {"erro": "Dados ausentes"}, 400
-
+    # Aqui você pode implementar lógica de inteligência artificial, por exemplo, usando OpenAI
     resposta = gerar_resposta_ia(texto, user)
-    return {"resposta": resposta}
+
+    # Salva a mensagem no banco de dados
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, whatsapp_oficial) VALUES (%s, %s, %s, %s, %s)",
+                (from_jid, 'recebida', user, texto, '5567992342051'))  # O WhatsApp Oficial do sistema
+    conn.commit()
+    conn.close()
+
+    return jsonify({"resposta": resposta})
 
 def gerar_resposta_ia(texto, user):
     openai.api_key = "SUA_OPENAI_API_KEY"
@@ -125,5 +131,36 @@ def gerar_resposta_ia(texto, user):
     except Exception as e:
         return "Desculpe, ocorreu um erro ao gerar a resposta."
 
-if __name__ == "__main__":
+# Rota para acessar as mensagens monitoradas a cada 5 minutos
+@app.route("/relatorio-pai", methods=["GET"])
+def relatorio_pai():
+    # Recupera as mensagens dos filhos para enviar para o WhatsApp do pai
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM mensagens_monitoradas WHERE whatsapp_oficial = %s", ('5567992342051',))  # WhatsApp Oficial
+    mensagens = cur.fetchall()
+    conn.close()
+
+    # Organiza as mensagens (por exemplo, por filho)
+    mensagens_por_filho = {}
+    for msg in mensagens:
+        nome_filho = msg[0]  # Número do filho (adapte conforme seu banco de dados)
+        if nome_filho not in mensagens_por_filho:
+            mensagens_por_filho[nome_filho] = []
+        mensagens_por_filho[nome_filho].append(msg[3])  # Adiciona o conteúdo da mensagem
+
+    # Aqui, você pode enviar o relatório via WhatsApp para o pai
+    for nome_filho, msgs in mensagens_por_filho.items():
+        mensagens_combinadas = "\n".join(msgs)
+        enviar_para_pai('5567992342051', f"Relatório de mensagens do(a) {nome_filho}:\n{mensagens_combinadas}")
+
+    return jsonify({"status": "relatório enviado com sucesso"})
+
+def enviar_para_pai(whatsapp_pai, mensagem):
+    # Função para enviar mensagem ao WhatsApp do pai (via WhatsApp oficial)
+    # Aqui você pode integrar com seu sistema para enviar a mensagem
+    print(f"Enviando mensagem para o WhatsApp {whatsapp_pai}: {mensagem}")
+    # Adicione aqui a integração com a API do WhatsApp para envio
+
+if _name_ == "_main_":
     app.run(debug=True, host="0.0.0.0", port=5000)
