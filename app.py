@@ -244,7 +244,7 @@ def disparar_relatorios():
         for numero_filho in telefones_monitorados:
             cur.execute("""
                 SELECT conteudo, horario FROM mensagens_monitoradas
-                WHERE numero_filho = %s AND tipo = 'recebida'
+                WHERE numero_filho = %s
                 ORDER BY horario DESC
             """, (numero_filho,))
             mensagens = cur.fetchall()
