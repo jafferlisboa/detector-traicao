@@ -1,17 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Cadastro - Síndico IA</title>
+    <title>Cadastro - Monitoramento</title>
 </head>
 <body>
     <h2>Cadastro</h2>
-    {% if erro %}<p style="color:red;">{{ erro }}</p>{% endif %}
-    <form method="POST">
-        <input type="text" name="username" placeholder="Novo usuário" required><br>
-        <input type="password" name="password" placeholder="Nova senha" required><br>
-        <button type="submit">Criar conta</button>
+    {% if erro %}
+        <p style="color:red;">{{ erro }}</p>
+    {% endif %}
+    <form method="post">
+        <label>Usuário:</label><br>
+        <input type="text" name="username" required><br><br>
+        <label>Senha:</label><br>
+        <input type="password" name="password" required><br><br>
+        <button type="submit">Cadastrar</button>
     </form>
-    <p><a href="/">Voltar para o login</a></p>
+    <p>Já tem conta? <a href="{{ url_for('login') }}">Faça login</a></p>
 </body>
 </html>
