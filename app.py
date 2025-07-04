@@ -162,5 +162,5 @@ def enviar_para_pai(whatsapp_pai, mensagem):
     print(f"Enviando mensagem para o WhatsApp {whatsapp_pai}: {mensagem}")
     # Adicione aqui a integração com a API do WhatsApp para envio
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
