@@ -211,7 +211,7 @@ def mensagem_recebida():
     cur = conn.cursor()
     tipo = data.get("tipo")
     if tipo not in ["recebida", "enviada"]:
-    return jsonify({"erro": "tipo inválido"}), 400
+        return jsonify({"erro": "tipo inválido"}), 400
 
     cur.execute("""
     INSERT INTO mensagens_monitoradas (
