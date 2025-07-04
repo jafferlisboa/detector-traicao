@@ -209,11 +209,15 @@ def mensagem_recebida():
 
     conn = get_db()
     cur = conn.cursor()
+    tipo = data.get("tipo")
+    if tipo not in ["recebida", "enviada"]:
+    return jsonify({"erro": "tipo inválido"}), 400
+
     cur.execute("""
-        INSERT INTO mensagens_monitoradas (
-            numero_filho, tipo, numero_contato, conteudo, horario
-        ) VALUES (%s, %s, %s, %s, %s)
-    """, (numero_filho, 'recebida', numero_contato, conteudo, horario))
+    INSERT INTO mensagens_monitoradas (
+        numero_filho, tipo, numero_contato, conteudo, horario
+    ) VALUES (%s, %s, %s, %s, %s)
+""", (numero_filho, tipo, numero_contato, conteudo, horario))
     conn.commit()
     conn.close()
 
