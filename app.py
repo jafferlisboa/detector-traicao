@@ -254,6 +254,12 @@ def disparar_relatorios():
             corpo = f"Relatório de mensagens do número {numero_filho}:\n"
             for conteudo, horario in mensagens:
                 corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
+            print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
+
+            # Validar e formatar whatsapp_pai
+            whatsapp_pai = whatsapp_pai.strip()
+            if not whatsapp_pai.startswith("+"):
+                whatsapp_pai = "+" + whatsapp_pai
 
             try:
                 response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
@@ -261,8 +267,8 @@ def disparar_relatorios():
                     "mensagem": corpo
                 }, timeout=10)
                 response.raise_for_status()
-                print(f"Relatório enviado para {whatsapp_pai}")
-                # Limpar mensagens do filho após envio
+                print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
+                # Limpar mensagens apenas se o envio for bem-sucedido
                 cur.execute("""
                     DELETE FROM mensagens_monitoradas
                     WHERE numero_filho = %s AND tipo = 'recebida'
@@ -277,7 +283,7 @@ def disparar_relatorios():
                 conn.commit()
 
     conn.close()
-    return jsonify({"status": "relatórios enviados com sucesso"})
+    return jsonify({"status": "relatórios processados"})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
