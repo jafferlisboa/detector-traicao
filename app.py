@@ -5,8 +5,8 @@ import psycopg2
 import requests
 import openai  # ou sua biblioteca IA favorita
 
-app = Flask(_name_)
-app.secret_key = 'sua_chave_secreta'
+app = Flask(__name__)
+app.secret_key = 'ALkcjYhUd876887FHnnfhfhYTd77f677f_f746HJcufiks8Mjs'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
