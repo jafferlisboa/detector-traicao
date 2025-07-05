@@ -249,7 +249,7 @@ def disparar_relatorios():
                 print(f"Verificando mensagens para numero_filho: {numero_filho} (tipo: {type(numero_filho).__name__})")  # Depuração do tipo
                 cur.execute("""
                     SELECT conteudo, horario FROM mensagens_monitoradas
-                    WHERE numero_filho = %s AND tipo = 'recebida'
+                    WHERE numero_filho = %s
                     ORDER BY horario DESC
                 """, (numero_filho,))
                 mensagens = cur.fetchall()
