@@ -246,22 +246,27 @@ def confirmar_conexao():
     cur = conn.cursor()
 
     # Salva número e nome na tabela nomes_filhos se ainda não existir
-    cur.execute("INSERT INTO nomes_filhos (numero, nome) VALUES (%s, %s) ON CONFLICT (numero) DO NOTHING", (numero, nome))
+    cur.execute("""
+        INSERT INTO nomes_filhos (numero, nome)
+        VALUES (%s, %s)
+        ON CONFLICT (numero) DO UPDATE SET nome = EXCLUDED.nome
+    """, (numero, nome))  # Atualiza o nome se já existir
 
-    # Atualiza telefones_monitorados do pai, se não estiver presente
-    cur.execute("SELECT id, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
-    usuarios = cur.fetchall()
+    # Atualiza apenas o usuário atual logado (pai), não todos do sistema
+    if current_user.is_authenticated:
+        cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+        resultado = cur.fetchone()
+        lista = resultado[0] if resultado else []
 
-    for user_id, lista in usuarios:
-        if lista and numero in lista:
-            continue
-        nova_lista = (lista or []) + [numero]
-        cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (nova_lista, user_id))
+        if numero not in lista:
+            nova_lista = lista + [numero]
+            cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (nova_lista, current_user.id))
 
     conn.commit()
     conn.close()
 
     return jsonify({"status": "salvo"})
+
 
 
 @app.route("/solicitar-qrcode/<nome>")
