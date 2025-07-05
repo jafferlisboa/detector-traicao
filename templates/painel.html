@@ -24,7 +24,7 @@
                 <li id="linha-{{ filho.numero_whatsapp }}">
                     <span>{{ filho.numero_whatsapp }}</span>
                     <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
-                    <button type="button" id="btn-conectar-{{ filho.numero_whatsapp }}" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
+                    <span class="acoes" id="acoes-{{ filho.numero_whatsapp }}"></span>
                     <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
                     <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
                         <button type="submit" class="btn-excluir">Excluir</button>
@@ -73,16 +73,29 @@
         .then(statuses => {
             for (const [numero, status] of Object.entries(statuses)) {
                 const statusEl = document.getElementById(`status-${numero}`);
-                const botaoEl = document.getElementById(`btn-conectar-${numero}`);
+                const acoesEl = document.getElementById(`acoes-${numero}`);
                 const qrEl = document.getElementById(`qrcode-${numero}`);
 
                 if (statusEl) {
                     statusEl.innerText = status ? "Conectado" : "Desconectado";
                 }
 
+                // Limpa os botões
+                acoesEl.innerHTML = "";
+                qrEl.innerHTML = "";
+
                 if (status) {
-                    if (botaoEl) botaoEl.remove();
-                    if (qrEl) qrEl.innerHTML = "";
+                    // Conectado: mostrar botão de desconectar
+                    const btnDesconectar = document.createElement("button");
+                    btnDesconectar.innerText = "Desconectar";
+                    btnDesconectar.onclick = () => desconectar(numero);
+                    acoesEl.appendChild(btnDesconectar);
+                } else {
+                    // Desconectado: mostrar botão de conectar
+                    const btnConectar = document.createElement("button");
+                    btnConectar.innerText = "Conectar";
+                    btnConectar.onclick = () => conectar(numero);
+                    acoesEl.appendChild(btnConectar);
                 }
             }
         });
@@ -101,7 +114,12 @@
             });
     }
 
-    setInterval(atualizarStatus, 60000);
+    function desconectar(numero) {
+        fetch(`/desconectar/${numero}`, { method: "POST" })
+            .then(() => atualizarStatus());
+    }
+
+    setInterval(atualizarStatus, 3000);
     atualizarStatus();
 </script>
 </body>
