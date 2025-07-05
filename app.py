@@ -223,6 +223,18 @@ def status_conexao():
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route("/desconectar/<numero>", methods=["POST"])
+@login_required
+def desconectar(numero):
+    try:
+        response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero}, timeout=10)
+        response.raise_for_status()
+        return jsonify({"status": "sessão desconectada com sucesso"})
+    except Exception as e:
+        print(f"Erro ao desconectar sessão para {numero}: {str(e)}")
+        return jsonify({"erro": f"erro ao desconectar sessão: {str(e)}"}), 500
+
+
 @app.route("/solicitar-qrcode/<numero>")
 @login_required
 def solicitar_qrcode(numero):
