@@ -194,8 +194,8 @@ def adicionar_filho():
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
     data = request.get_json()
-    numero_filho = '+' + data.get("de").strip('@s.whatsapp.net')
-    numero_contato = '+' + data.get("para").strip('@s.whatsapp.net')
+    numero_filho = '+' + data.get("para").strip('@s.whatsapp.net')  # Inverter: para como numero_filho (destinatário/filho)
+    numero_contato = '+' + data.get("de").strip('@s.whatsapp.net')  # Inverter: de como numero_contato (remetente/contato)
     conteudo = data.get("texto")
     horario_str = data.get("horario")
 
