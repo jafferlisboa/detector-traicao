@@ -260,7 +260,7 @@ def disparar_relatorios():
                     cur.execute("SELECT * FROM mensagens_monitoradas WHERE numero_filho = %s", (numero_filho,))
                     dados_brutos = cur.fetchall()
                     print(f"Dados brutos para {numero_filho}: {dados_brutos}")
-                    continue
+                    continue  # Pula o envio se não houver mensagens
 
                 corpo = f"Relatório de mensagens do número {numero_filho}:\n"
                 for conteudo, horario in mensagens:
@@ -281,8 +281,8 @@ def disparar_relatorios():
                     print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
                     cur.execute("""
                         DELETE FROM mensagens_monitoradas
-                        WHERE numero_filho = %s AND tipo = 'recebida'
-                    """, (numero_filho,))
+                        WHERE numero_filho = %s
+                    """, (numero_filho,))  # Remove o filtro de tipo
                     conn.commit()
                 except Exception as e:
                     print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
