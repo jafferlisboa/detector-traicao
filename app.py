@@ -229,61 +229,76 @@ def mensagem_recebida():
 
 @app.route("/disparar-relatorios", methods=["GET"])
 def disparar_relatorios():
-    conn = get_db()
-    cur = conn.cursor()
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
 
-    cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
-    usuarios = cur.fetchall()
-    print(f"Usuários encontrados: {usuarios}")  # Depuração
+        print("Consultando usuários no banco de dados...")
+        cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+        usuarios = cur.fetchall()
+        print(f"Usuários encontrados: {usuarios}")  # Depuração
 
-    for user_id, whatsapp_pai, telefones_monitorados in usuarios:
-        print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
-        if not telefones_monitorados:
-            continue
-
-        for numero_filho in telefones_monitorados:
-            cur.execute("""
-                SELECT conteudo, horario FROM mensagens_monitoradas
-                WHERE numero_filho = %s AND tipo = 'recebida'
-                ORDER BY horario DESC
-            """, (numero_filho,))
-            mensagens = cur.fetchall()
-            print(f"Mensagens para {numero_filho}: {mensagens}")  # Depuração
-
-            if not mensagens:
+        for user_id, whatsapp_pai, telefones_monitorados in usuarios:
+            print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
+            if not telefones_monitorados:
+                print(f"Sem telefones monitorados para usuário {user_id}")
                 continue
 
-            corpo = f"Relatório de mensagens do número {numero_filho}:\n"
-            for conteudo, horario in mensagens:
-                corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
-            print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
-
-            whatsapp_pai = whatsapp_pai.strip()
-            if not whatsapp_pai.startswith("+"):
-                whatsapp_pai = "+" + whatsapp_pai
-
-            try:
-                response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
-                    "numero_destino": whatsapp_pai,
-                    "mensagem": corpo
-                }, timeout=10)
-                response.raise_for_status()
-                print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
+            for numero_filho in telefones_monitorados:
+                print(f"Verificando mensagens para numero_filho: {numero_filho} (tipo: {type(numero_filho).__name__})")  # Depuração do tipo
                 cur.execute("""
-                    DELETE FROM mensagens_monitoradas
+                    SELECT conteudo, horario FROM mensagens_monitoradas
                     WHERE numero_filho = %s AND tipo = 'recebida'
+                    ORDER BY horario DESC
                 """, (numero_filho,))
-                conn.commit()
-            except Exception as e:
-                print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
-                cur.execute("""
-                    INSERT INTO log_erros (usuario_id, erro, data)
-                    VALUES (%s, %s, %s)
-                """, (user_id, str(e), datetime.now()))
-                conn.commit()
+                mensagens = cur.fetchall()
+                print(f"Mensagens para {numero_filho}: {mensagens} (count: {len(mensagens)})")  # Depuração com contagem
 
-    conn.close()
-    return jsonify({"status": "relatórios processados"})
+                if not mensagens:
+                    print(f"Nenhuma mensagem encontrada para {numero_filho}, verificando dados brutos...")
+                    cur.execute("SELECT * FROM mensagens_monitoradas WHERE numero_filho = %s", (numero_filho,))
+                    dados_brutos = cur.fetchall()
+                    print(f"Dados brutos para {numero_filho}: {dados_brutos}")
+                    continue
+
+                corpo = f"Relatório de mensagens do número {numero_filho}:\n"
+                for conteudo, horario in mensagens:
+                    corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
+                print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
+
+                whatsapp_pai = whatsapp_pai.strip()
+                if not whatsapp_pai.startswith("+"):
+                    whatsapp_pai = "+" + whatsapp_pai
+
+                try:
+                    print(f"Enviando relatório para {whatsapp_pai} com corpo: {corpo}")
+                    response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
+                        "numero_destino": whatsapp_pai,
+                        "mensagem": corpo
+                    }, timeout=10)
+                    response.raise_for_status()
+                    print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
+                    cur.execute("""
+                        DELETE FROM mensagens_monitoradas
+                        WHERE numero_filho = %s AND tipo = 'recebida'
+                    """, (numero_filho,))
+                    conn.commit()
+                except Exception as e:
+                    print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
+                    cur.execute("""
+                        INSERT INTO log_erros (usuario_id, erro, data)
+                        VALUES (%s, %s, %s)
+                    """, (user_id, str(e), datetime.now()))
+                    conn.commit()
+
+        return jsonify({"status": "relatórios processados"})
+    except Exception as e:
+        print(f"Erro interno na rota /disparar-relatorios: {str(e)}")
+        return jsonify({"erro": "Erro interno no servidor", "detalhes": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":
