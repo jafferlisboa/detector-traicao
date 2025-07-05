@@ -113,22 +113,22 @@
         return false;
     }
 
-    function conectar(numero) {
-        if (!debounceClick(numero, 'conectar')) return;
-        const btn = document.getElementById(`btn-conectar-${numero}`);
-        if (btn) btn.disabled = true;
-        fetch(`/solicitar-qrcode/${numero}`)
-            .then(r => r.json())
-            .then(data => {
-                const el = document.getElementById(`qrcode-${numero}`);
-                if (el && data.qrcode) {
-                    el.innerHTML = `<img src="${data.qrcode}" width="200">`;
-                } else {
-                    el.innerText = "Erro ao gerar QR code.";
-                }
-                if (btn) setTimeout(() => btn.disabled = false, 10000);
-            });
-    }
+    function conectar(nome) {
+    const nomeInput = prompt("Nome do filho:");
+    if (!nomeInput) return;
+
+    fetch(`/solicitar-qrcode/${nomeInput}`)
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById(`qrcode-painel`);
+            if (el && data.qrcode) {
+                el.innerHTML = `<img src="${data.qrcode}" width="200">`;
+            } else {
+                el.innerText = "Erro ao gerar QR code.";
+            }
+        });
+}
+
 
     function desconectar(numero) {
         if (!debounceClick(numero, 'desconectar')) return;
