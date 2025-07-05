@@ -96,12 +96,17 @@ def painel():
 
     cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
-    conn.close()
-
     plano = row[0]
-    filhos_raw = row[1] or []
+    numeros_filho = row[1] or []
     whatsapp_pai = row[2]
-    filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
+
+    # Buscar nomes associados aos números
+    filhos = []
+    for idx, numero in enumerate(numeros_filho):
+        cur.execute("SELECT nome FROM filhos WHERE numero = %s", (numero,))
+        resultado = cur.fetchone()
+        nome = resultado[0] if resultado else "(sem nome)"
+        filhos.append({"id": idx + 1, "numero_whatsapp": numero, "nome": nome})
 
     limites = {
         "Gratuito": 1,
@@ -110,16 +115,16 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
-    qr_code = None
-    # Não gera QR code para o pai na rota /painel
+    conn.close()
+
     return render_template(
         "painel.html",
         session_id=whatsapp_pai,
         plano=plano,
         filhos=filhos,
-        max_filhos=max_filhos,
-        qr_code=qr_code
+        max_filhos=max_filhos
     )
+
 
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
 @login_required
