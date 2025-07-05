@@ -4,6 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from datetime import datetime, timedelta
 import requests
+from openai import OpenAI
+import tempfile
+import os
 import re
 
 app = Flask(__name__)
@@ -206,12 +209,49 @@ def adicionar_filho():
 
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
-    data = request.get_json()
-    numero_filho = '+' + data.get("para").strip('@s.whatsapp.net')  # Inverter: para como numero_filho (destinatário/filho)
-    numero_contato = '+' + data.get("de").strip('@s.whatsapp.net')  # Inverter: de como numero_contato (remetente/contato)
-    conteudo = data.get("texto")
-    horario_str = data.get("horario")
+    if request.content_type.startswith("multipart/form-data"):
+        # ÁUDIO
+        numero_filho = '+' + request.form.get("para", "").strip('@s.whatsapp.net')
+        numero_contato = '+' + request.form.get("de", "").strip('@s.whatsapp.net')
+        horario_str = request.form.get("horario")
+        tipo = request.form.get("tipo")
+        nome_contato = request.form.get("nome_contato", "")
 
+        if "audio" not in request.files:
+            return jsonify({"erro": "arquivo de áudio não encontrado"}), 400
+
+        audio_file = request.files["audio"]
+
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp:
+                audio_path = temp.name
+                audio_file.save(audio_path)
+
+            with open(audio_path, "rb") as f:
+                transcription = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f,
+                    response_format="text"
+                )
+
+            conteudo = transcription.strip()
+
+        except Exception as e:
+            return jsonify({"erro": f"falha ao transcrever áudio: {str(e)}"}), 500
+        finally:
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+
+    else:
+        # TEXTO NORMAL
+        data = request.get_json()
+        numero_filho = '+' + data.get("para").strip('@s.whatsapp.net')
+        numero_contato = '+' + data.get("de").strip('@s.whatsapp.net')
+        conteudo = data.get("texto")
+        horario_str = data.get("horario")
+        tipo = data.get("tipo")
+
+    # VERIFICAÇÕES PADRÃO (iguais ao seu código original)
     if not all([numero_filho, numero_contato, conteudo, horario_str]):
         return jsonify({"erro": "dados incompletos"}), 400
 
@@ -220,23 +260,23 @@ def mensagem_recebida():
     except Exception as e:
         return jsonify({"erro": f"formato de horário inválido: {str(e)}"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-    tipo = data.get("tipo")
     if tipo not in ["recebida", "enviada"]:
         return jsonify({"erro": "tipo inválido"}), 400
 
     if numero_contato == "+556792342051":
-        conn.close()
         return jsonify({"status": "mensagem ignorada (destinatário oficial)"})
+
+    conn = get_db()
+    cur = conn.cursor()
+
     if numero_filho != '+556792342051':
         cur.execute("""
-    INSERT INTO mensagens_monitoradas (
-        numero_filho, tipo, numero_contato, conteudo, horario
-    ) VALUES (%s, %s, %s, %s, %s)
-""", (numero_filho, tipo, numero_contato, conteudo, horario))
-    conn.commit()
-    conn.close()
+            INSERT INTO mensagens_monitoradas (
+                numero_filho, tipo, numero_contato, conteudo, horario
+            ) VALUES (%s, %s, %s, %s, %s)
+        """, (numero_filho, tipo, numero_contato, conteudo, horario))
+        conn.commit()
+        conn.close()
 
     return jsonify({"status": "mensagem salva com sucesso"})
 
