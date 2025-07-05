@@ -213,7 +213,7 @@ def mensagem_recebida():
     if tipo not in ["recebida", "enviada"]:
         return jsonify({"erro": "tipo inválido"}), 400
 
-    if tipo == "recebida" and numero_contato == "+5567992342051":
+    if numero_contato == "+556792342051":
         conn.close()
         return jsonify({"status": "mensagem ignorada (destinatário oficial)"})
     if numero_filho != '+556792342051':
