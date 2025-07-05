@@ -272,7 +272,7 @@ def disparar_relatorios():
                     whatsapp_pai = "+" + whatsapp_pai
 
                 try:
-                    print(f"Enviando relatório para {whatsapp_pai} com corpo: {corpo}")
+                    print(f"Enviando relatório para {whatsapp_pai} com corpo: {corpo[:100]}...")
                     response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
                         "numero_destino": whatsapp_pai,
                         "mensagem": corpo
@@ -299,7 +299,6 @@ def disparar_relatorios():
     finally:
         if conn:
             conn.close()
-
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
