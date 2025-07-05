@@ -9,19 +9,23 @@ import tempfile
 import os
 import re
 
+from dotenv import load_dotenv
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DB_HOST = os.getenv("DB_HOST")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_PORT = os.getenv("DB_PORT")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+
 app = Flask(__name__)
-app.secret_key = 'ALkcjYhUd876887FHnnfhfhYTd77f677f_f746HJcufiks8Mjs'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = '/'
 
-# Configuração do Postgres
-DB_HOST = "dpg-d1jbjtje5dus73c2qe0g-a.oregon-postgres.render.com"
-DB_NAME = "condominio_db_9tut"
-DB_USER = "condominio_user"
-DB_PASS = "eOO34utsZTeeF7oE9uJE8D7OcgiQSfNC"
-DB_PORT = 5432
 
 def get_db():
     return psycopg2.connect(
