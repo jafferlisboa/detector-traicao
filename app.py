@@ -216,8 +216,8 @@ def mensagem_recebida():
     if tipo == "recebida" and numero_contato == "+5567992342051":
         conn.close()
         return jsonify({"status": "mensagem ignorada (destinatário oficial)"})
-    
-    cur.execute("""
+    if numero_filho != '+556792342051':
+        cur.execute("""
     INSERT INTO mensagens_monitoradas (
         numero_filho, tipo, numero_contato, conteudo, horario
     ) VALUES (%s, %s, %s, %s, %s)
@@ -299,6 +299,5 @@ def disparar_relatorios():
     finally:
         if conn:
             conn.close()
-
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
