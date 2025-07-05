@@ -167,9 +167,11 @@ def excluir_filho(filho_id):
 @app.route("/adicionar-filho", methods=["POST"])
 @login_required
 def adicionar_filho():
-    numero = request.form["numero"].strip()
-    nome = request.form["nome"].strip()
-    
+    nome = request.form.get("nome")
+    if not nome:
+        return "Nome do filho é obrigatório.", 400
+
+    # Número será adicionado depois, quando a conexão for feita via QR code
     conn = get_db()
     cur = conn.cursor()
 
@@ -187,24 +189,22 @@ def adicionar_filho():
 
     if len(filhos) >= max_filhos:
         conn.close()
-        return redirect(url_for("painel", erro="Limite de filhos atingido."))
+        return render_template(
+            "painel.html",
+            erro="Limite de filhos atingido.",
+            session_id=current_user.username,
+            plano=plano,
+            filhos=[],
+            max_filhos=max_filhos,
+            nomes_filhos={}
+        )
 
-    if numero in filhos:
-        conn.close()
-        return redirect(url_for("painel", erro="Este número já está cadastrado."))
-
-    # 1. Adiciona número à lista do usuário
-    filhos.append(numero)
-    cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
-
-    # 2. Salva o nome do número na nova tabela, se ainda não existir
-    cur.execute("INSERT INTO filhos (numero, nome) VALUES (%s, %s) ON CONFLICT (numero) DO NOTHING", (numero, nome))
-
+    # Armazena nome temporariamente na tabela filhos com número em branco
+    cur.execute("INSERT INTO filhos (nome, numero) VALUES (%s, %s) RETURNING id", (nome, None))
     conn.commit()
     conn.close()
+
     return redirect(url_for("painel"))
-
-
 @app.route("/status-conexao", methods=["POST"])
 @login_required
 def status_conexao():
