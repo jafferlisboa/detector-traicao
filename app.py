@@ -8,8 +8,8 @@ from openai import OpenAI
 import tempfile
 import os
 import re
-
 from dotenv import load_dotenv
+
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DB_HOST = os.getenv("DB_HOST")
