@@ -1,68 +1,99 @@
 <!DOCTYPE html>
-   <html lang="pt-br">
-   <head>
-       <meta charset="UTF-8">
-       <title>Painel de Monitoramento</title>
-       <link rel="stylesheet" href="{{ url_for('static', filename='painel.css') }}">
-   </head>
-   <body>
-       <div class="container">
-           <h1>Painel de Monitoramento</h1>
-           <div class="topo">
-               <p><strong>Usuário:</strong> {{ session_id }}</p>
-               <p><strong>Plano:</strong> {{ plano }}</p>
-               <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
-               <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
-           </div>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Monitoramento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='painel.css') }}">
+    
+</head>
+<body>
+<div class="container">
+    <h1>Painel de Monitoramento</h1>
+    <div class="topo">
+        <p><strong>Usuário:</strong> {{ session_id }}</p>
+        <p><strong>Plano:</strong> {{ plano }}</p>
+        <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
+        <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
+    </div>
 
-           <hr>
+    <hr>
 
-           <h2>Filhos Monitorados</h2>
-           {% if filhos %}
-               <ul class="filho-lista">
-                   {% for filho in filhos %}
-                       <li>
-                           <span>{{ filho.numero_whatsapp }}</span>
-                           <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}">
-                               <button type="submit" class="btn-excluir">Excluir</button>
-                           </form>
-                       </li>
-                   {% endfor %}
-               </ul>
-           {% else %}
-               <p>Nenhum filho cadastrado ainda.</p>
-           {% endif %}
+    <h2>Filhos Monitorados</h2>
+    {% if filhos %}
+        <ul class="filho-lista">
+            {% for filho in filhos %}
+                <li id="linha-{{ filho.numero_whatsapp }}">
+                    <span>{{ filho.numero_whatsapp }}</span>
+                    <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
+                    <button type="button" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
+                    <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
+                    <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
+                        <button type="submit" class="btn-excluir">Excluir</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Nenhum filho cadastrado ainda.</p>
+    {% endif %}
 
-           {% if filhos|length < max_filhos %}
-               <h2>Adicionar Novo Filho</h2>
-               <form method="post" action="{{ url_for('adicionar_filho') }}">
-                   <label for="numero">Número do WhatsApp (com DDI, ex.: +551234567890):</label><br>
-                   <input type="text" name="numero" required><br><br>
-                   <button type="submit">Adicionar e Gerar QR Code</button>
-               </form>
-           {% else %}
-               <p class="limite">Limite de filhos atingido para o seu plano.</p>
-           {% endif %}
+    {% if filhos|length < max_filhos %}
+        <h2>Adicionar Novo Filho</h2>
+        <form method="post" action="{{ url_for('adicionar_filho') }}">
+            <label for="numero">Número do WhatsApp (com DDI, ex.: +551234567890):</label><br>
+            <input type="text" name="numero" required><br><br>
+            <button type="submit">Adicionar</button>
+        </form>
+    {% else %}
+        <p class="limite">Limite de filhos atingido para o seu plano.</p>
+    {% endif %}
 
-           {% if mensagem %}
-               <p class="mensagem">{{ mensagem }}</p>
-           {% endif %}
+    {% if mensagem %}
+        <p class="mensagem">{{ mensagem }}</p>
+    {% endif %}
 
-           {% if erro %}
-               <p class="erro">{{ erro }}</p>
-           {% endif %}
+    {% if erro %}
+        <p class="erro">{{ erro }}</p>
+    {% endif %}
 
-           {% if qr_code %}
-               <div class="qrcode">
-                   <h3>Escaneie o QR Code com o celular do filho:</h3>
-                   <img src="{{ qr_code }}" alt="QR Code">
-               </div>
-           {% elif not mensagem %}
-               <p>Sessão WhatsApp do pai já autenticada ou aguardando autenticação.</p>
-           {% endif %}
+    <hr>
+    <p><a href="{{ url_for('logout') }}">Sair</a></p>
+</div>
 
-           <hr>
-           <p><a href="{{ url_for('logout') }}">Sair</a></p>
-       </div>
-   </body>
-   </html>
+<script>
+    const numeros = {{ filhos | tojson }};
+
+    function atualizarStatus() {
+        const lista = numeros.map(f => f.numero_whatsapp);
+        fetch("/status-conexao", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ numeros: lista })
+        })
+        .then(r => r.json())
+        .then(statuses => {
+            for (const [numero, status] of Object.entries(statuses)) {
+                const el = document.getElementById(`status-${numero}`);
+                if (el) el.innerText = status ? "Conectado" : "Desconectado";
+            }
+        });
+    }
+
+    function conectar(numero) {
+        fetch(`/solicitar-qrcode/${numero}`)
+            .then(r => r.json())
+            .then(data => {
+                const el = document.getElementById(`qrcode-${numero}`);
+                if (el && data.qrcode) {
+                    el.innerHTML = `<img src="${data.qrcode}" width="200">`;
+                } else {
+                    el.innerText = "Erro ao gerar QR code.";
+                }
+            });
+    }
+
+    setInterval(atualizarStatus, 60000);
+    atualizarStatus();
+</script>
+</body>
+</html>
