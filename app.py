@@ -100,13 +100,15 @@ def painel():
     numeros_filho = row[1] or []
     whatsapp_pai = row[2]
 
-    # Buscar nomes associados aos números
     filhos = []
+    nomes_filhos = {}
+
     for idx, numero in enumerate(numeros_filho):
         cur.execute("SELECT nome FROM filhos WHERE numero = %s", (numero,))
         resultado = cur.fetchone()
         nome = resultado[0] if resultado else "(sem nome)"
         filhos.append({"id": idx + 1, "numero_whatsapp": numero, "nome": nome})
+        nomes_filhos[numero] = nome  # adiciona no dicionário para uso no JS
 
     limites = {
         "Gratuito": 1,
@@ -122,9 +124,9 @@ def painel():
         session_id=whatsapp_pai,
         plano=plano,
         filhos=filhos,
-        max_filhos=max_filhos
+        max_filhos=max_filhos,
+        nomes_filhos=nomes_filhos  # agora garantido como dict
     )
-
 
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
 @login_required
