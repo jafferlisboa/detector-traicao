@@ -129,13 +129,26 @@ def excluir_filho(filho_id):
 
     filhos = resultado[0] or []
     if filho_id <= len(filhos):
+        numero_filho = filhos[filho_id - 1]  # Captura o número do filho a ser excluído
         del filhos[filho_id - 1]
         cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
         conn.commit()
 
+        # Enviar comando para o Node.js excluir a sessão
+        try:
+            response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero_filho}, timeout=10)
+            response.raise_for_status()
+            print(f"Sessão excluída para {numero_filho}: {response.text}")
+        except Exception as e:
+            print(f"Erro ao excluir sessão para {numero_filho}: {str(e)}")
+            cur.execute("""
+                INSERT INTO log_erros (usuario_id, erro, data)
+                VALUES (%s, %s, %s)
+            """, (current_user.id, f"Erro ao excluir sessão: {str(e)}", datetime.now()))
+            conn.commit()
+
     conn.close()
     return redirect(url_for("painel"))
-
 @app.route("/adicionar-filho", methods=["POST"])
 @login_required
 def adicionar_filho():
