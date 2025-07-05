@@ -17,11 +17,10 @@ DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
 DB_PORT = os.getenv("DB_PORT")
-app.secret_key = os.getenv("FLASK_SECRET_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
-
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = '/'
