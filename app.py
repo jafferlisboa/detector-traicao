@@ -186,6 +186,17 @@ def adicionar_filho():
             qr_code=None
         )
 
+    if numero in filhos:
+        conn.close()
+        return render_template(
+        "painel.html",
+        erro="Este número já está cadastrado.",
+        session_id=current_user.username,
+        plano=plano,
+        filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+        max_filhos=max_filhos,
+        qr_code=None
+    )
     filhos.append(numero)
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
     conn.commit()
@@ -209,6 +220,35 @@ def adicionar_filho():
         qr_code=qr_code,
         mensagem=f"Novo filho {numero} adicionado. Escaneie o QR code, se disponível."
     )
+
+@app.route("/status-conexao", methods=["POST"])
+@login_required
+def status_conexao():
+    try:
+        numeros = request.json.get("numeros", [])
+        status_resultados = {}
+
+        for numero in numeros:
+            try:
+                resp = requests.get(f"http://147.93.4.219:3000/status-sessao/{numero}", timeout=5)
+                dados = resp.json()
+                status_resultados[numero] = dados.get("conectado", False)
+            except:
+                status_resultados[numero] = False
+
+        return jsonify(status_resultados)
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route("/solicitar-qrcode/<numero>")
+@login_required
+def solicitar_qrcode(numero):
+    try:
+        resp = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
+        dados = resp.json()
+        return jsonify({"qrcode": dados.get("qrcode")})
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
