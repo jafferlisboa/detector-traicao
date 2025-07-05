@@ -6,3 +6,4 @@ Werkzeug
 psycopg2-binary
 requests
 openai
+python-dotenv
