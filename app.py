@@ -135,12 +135,14 @@ def excluir_filho(filho_id):
 
     filhos = resultado[0] or []
     if filho_id <= len(filhos):
-        numero_filho = filhos[filho_id - 1]  # Captura o número do filho a ser excluído
+        numero_filho = filhos[filho_id - 1]
         del filhos[filho_id - 1]
         cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
-        conn.commit()
 
-        # Enviar comando para o Node.js excluir a sessão
+        # opcional: apagar da tabela 'filhos' se nenhum outro usuário estiver usando
+        cur.execute("DELETE FROM filhos WHERE numero = %s", (numero_filho,))
+
+        # Envia comando para o Node.js excluir a sessão
         try:
             response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero_filho}, timeout=10)
             response.raise_for_status()
@@ -151,14 +153,16 @@ def excluir_filho(filho_id):
                 INSERT INTO log_erros (usuario_id, erro, data)
                 VALUES (%s, %s, %s)
             """, (current_user.id, f"Erro ao excluir sessão: {str(e)}", datetime.now()))
-            conn.commit()
-
+    conn.commit()
     conn.close()
     return redirect(url_for("painel"))
+
 @app.route("/adicionar-filho", methods=["POST"])
 @login_required
 def adicionar_filho():
-    numero = request.form["numero"]
+    numero = request.form["numero"].strip()
+    nome = request.form["nome"].strip()
+    
     conn = get_db()
     cur = conn.cursor()
 
@@ -176,33 +180,23 @@ def adicionar_filho():
 
     if len(filhos) >= max_filhos:
         conn.close()
-        return render_template(
-            "painel.html",
-            erro="Limite de filhos atingido.",
-            session_id=current_user.username,
-            plano=plano,
-            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
-            max_filhos=max_filhos,
-            qr_code=None
-        )
+        return redirect(url_for("painel", erro="Limite de filhos atingido."))
 
     if numero in filhos:
         conn.close()
-        return render_template(
-        "painel.html",
-        erro="Este número já está cadastrado.",
-        session_id=current_user.username,
-        plano=plano,
-        filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
-        max_filhos=max_filhos,
-        qr_code=None
-    )
+        return redirect(url_for("painel", erro="Este número já está cadastrado."))
+
+    # 1. Adiciona número à lista do usuário
     filhos.append(numero)
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
+
+    # 2. Salva o nome do número na nova tabela, se ainda não existir
+    cur.execute("INSERT INTO filhos (numero, nome) VALUES (%s, %s) ON CONFLICT (numero) DO NOTHING", (numero, nome))
+
     conn.commit()
     conn.close()
-
     return redirect(url_for("painel"))
+
 
 @app.route("/status-conexao", methods=["POST"])
 @login_required
