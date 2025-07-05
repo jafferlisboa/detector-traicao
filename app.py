@@ -238,10 +238,13 @@ def disparar_relatorios():
 
     for user_id, whatsapp_pai, telefones_monitorados in usuarios:
         print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
+        if not telefones_monitorados:
+            continue
+
         for numero_filho in telefones_monitorados:
             cur.execute("""
                 SELECT conteudo, horario FROM mensagens_monitoradas
-                WHERE numero_filho = """ + numero_filho + """
+                WHERE numero_filho = %s AND tipo = 'recebida'
                 ORDER BY horario DESC
             """, (numero_filho,))
             mensagens = cur.fetchall()
@@ -268,7 +271,7 @@ def disparar_relatorios():
                 print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
                 cur.execute("""
                     DELETE FROM mensagens_monitoradas
-                    WHERE numero_filho = %s
+                    WHERE numero_filho = %s AND tipo = 'recebida'
                 """, (numero_filho,))
                 conn.commit()
             except Exception as e:
@@ -281,6 +284,7 @@ def disparar_relatorios():
 
     conn.close()
     return jsonify({"status": "relatórios processados"})
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
