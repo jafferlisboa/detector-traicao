@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Painel de Monitoramento</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='painel.css') }}">
-    
 </head>
 <body>
 <div class="container">
@@ -25,7 +24,7 @@
                 <li id="linha-{{ filho.numero_whatsapp }}">
                     <span>{{ filho.numero_whatsapp }}</span>
                     <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
-                    <button type="button" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
+                    <button type="button" id="btn-conectar-{{ filho.numero_whatsapp }}" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
                     <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
                     <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
                         <button type="submit" class="btn-excluir">Excluir</button>
@@ -73,8 +72,18 @@
         .then(r => r.json())
         .then(statuses => {
             for (const [numero, status] of Object.entries(statuses)) {
-                const el = document.getElementById(`status-${numero}`);
-                if (el) el.innerText = status ? "Conectado" : "Desconectado";
+                const statusEl = document.getElementById(`status-${numero}`);
+                const botaoEl = document.getElementById(`btn-conectar-${numero}`);
+                const qrEl = document.getElementById(`qrcode-${numero}`);
+
+                if (statusEl) {
+                    statusEl.innerText = status ? "Conectado" : "Desconectado";
+                }
+
+                if (status) {
+                    if (botaoEl) botaoEl.remove();
+                    if (qrEl) qrEl.innerHTML = "";
+                }
             }
         });
     }
