@@ -12,7 +12,7 @@ body {
     padding: 20px;
     background-color: white;
     border-radius: 10px;
-    box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
 }
 
 h1, h2, h3 {
@@ -39,6 +39,8 @@ h1, h2, h3 {
 
 .filho-lista li {
     display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     justify-content: space-between;
     align-items: center;
     background: #f7f7f7;
@@ -48,9 +50,61 @@ h1, h2, h3 {
     font-size: 16px;
 }
 
+.filho-lista span {
+    font-weight: bold;
+    color: #333;
+    margin-right: 10px;
+}
+
+.status {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-right: 10px;
+}
+
+.qrcode-area {
+    margin-top: 10px;
+    flex-basis: 100%;
+}
+
+.qrcode-area img {
+    border: 1px solid #ccc;
+    max-width: 100%;
+    height: auto;
+}
+
+button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button[type="button"] {
+    background-color: #3498db;
+    color: white;
+}
+
 .btn-excluir {
     background-color: #e74c3c;
     color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.limite {
+    color: red;
+    font-weight: bold;
+}
+
+.mensagem {
+    color: green;
+    font-weight: bold;
+}
+
+.erro {
+    color: red;
+    font-weight: bold;
+}
