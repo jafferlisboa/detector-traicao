@@ -42,7 +42,7 @@
         <form method="post" action="{{ url_for('adicionar_filho') }}">
             <label for="nome">Nome do Filho:</label><br>
             <input type="text" name="nome" required><br><br>
-            <button type="submit">Aguardar Conexão</button>
+            <button type="submit">Adicionar</button>
         </form>
     {% else %}
         <p class="limite">Limite de filhos atingido para o seu plano.</p>
