@@ -233,12 +233,42 @@ def desconectar(numero):
         print(f"Erro ao desconectar sessão para {numero}: {str(e)}")
         return jsonify({"erro": f"erro ao desconectar sessão: {str(e)}"}), 500
 
+@app.route("/confirmar-conexao", methods=["POST"])
+def confirmar_conexao():
+    data = request.get_json()
+    numero = data.get("numero")
+    nome = data.get("nome")
 
-@app.route("/solicitar-qrcode/<numero>")
+    if not numero or not nome:
+        return jsonify({"erro": "Dados incompletos"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Salva número e nome na tabela nomes_filhos se ainda não existir
+    cur.execute("INSERT INTO nomes_filhos (numero, nome) VALUES (%s, %s) ON CONFLICT (numero) DO NOTHING", (numero, nome))
+
+    # Atualiza telefones_monitorados do pai, se não estiver presente
+    cur.execute("SELECT id, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+    usuarios = cur.fetchall()
+
+    for user_id, lista in usuarios:
+        if lista and numero in lista:
+            continue
+        nova_lista = (lista or []) + [numero]
+        cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (nova_lista, user_id))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"status": "salvo"})
+
+
+@app.route("/solicitar-qrcode/<nome>")
 @login_required
-def solicitar_qrcode(numero):
+def solicitar_qrcode(nome):
     try:
-        resp = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
+        resp = requests.get(f"http://147.93.4.219:3000/qrcode/{nome}?force=true", timeout=10)
         dados = resp.json()
         return jsonify({"qrcode": dados.get("qrcode")})
     except Exception as e:
