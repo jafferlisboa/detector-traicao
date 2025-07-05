@@ -202,24 +202,7 @@ def adicionar_filho():
     conn.commit()
     conn.close()
 
-    qr_code = None
-    qr_code_url = f"http://147.93.4.219:3000/qrcode/{numero}?force=true"
-    try:
-        r = requests.get(qr_code_url, timeout=10)
-        response = r.json()
-        qr_code = response.get("qrcode")
-    except Exception as e:
-        print(f"Erro ao gerar QR code para {numero}: {str(e)}")
-
-    return render_template(
-        "painel.html",
-        session_id=current_user.username,
-        plano=plano,
-        filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
-        max_filhos=max_filhos,
-        qr_code=qr_code,
-        mensagem=f"Novo filho {numero} adicionado. Escaneie o QR code, se disponível."
-    )
+    return redirect(url_for("painel"))
 
 @app.route("/status-conexao", methods=["POST"])
 @login_required
