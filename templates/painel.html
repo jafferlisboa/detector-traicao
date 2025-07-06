@@ -21,7 +21,7 @@
     {% if filhos %}
         <ul class="filho-lista">
             {% for filho in filhos %}
-                <li id="linha-{{ filho.numero_whatsapp }}">
+                <li id="linha-{{ filho.numero_whatsapp or filho.nome }}">
                     <span><strong>{{ filho.nome }}</strong> — {{ filho.numero_whatsapp or "Aguardando conexão" }}</span>
                     {% if filho.numero_whatsapp %}
                         <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
@@ -68,7 +68,7 @@
     function atualizarStatus() {
         const numeros = filhos
             .map(f => f.numero_whatsapp)
-            .filter(n => n); // Exclui entradas sem número
+            .filter(n => n);
         if (numeros.length === 0) return;
 
         fetch("/status-conexao", {
@@ -89,7 +89,8 @@
                 if (btnDesconectar) btnDesconectar.style.display = status ? "inline-block" : "none";
                 if (qrArea && status) qrArea.innerHTML = "";
             }
-        });
+        })
+        .catch(err => console.error("Erro ao atualizar status:", err));
     }
 
     function conectar(nome) {
@@ -103,9 +104,28 @@
                 const el = document.getElementById(`qrcode-${nome}`);
                 if (el && data.qrcode) {
                     el.innerHTML = `<img src="${data.qrcode}" width="200">`;
+                    // Monitorar conexão
+                    const checkConnection = setInterval(() => {
+                        fetch("/status-conexao", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ numeros: filhos.map(f => f.numero_whatsapp).filter(n => n) })
+                        })
+                        .then(r => r.json())
+                        .then(statuses => {
+                            if (Object.values(statuses).some(status => status)) {
+                                clearInterval(checkConnection);
+                                location.reload(); // Recarrega a página após conexão
+                            }
+                        });
+                    }, 3000);
                 } else {
                     el.innerText = "Erro ao gerar QR code.";
                 }
+            })
+            .catch(err => {
+                console.error("Erro ao solicitar QR code:", err);
+                document.getElementById(`qrcode-${nome}`).innerText = "Erro ao gerar QR code.";
             });
     }
 
@@ -119,10 +139,12 @@
             .then(res => {
                 if (res.status === "sessão desconectada com sucesso") {
                     atualizarStatus();
+                    location.reload();
                 } else {
                     alert("Erro ao desconectar.");
                 }
-            });
+            })
+            .catch(err => console.error("Erro ao desconectar:", err));
     }
 
     setInterval(atualizarStatus, 3000);
