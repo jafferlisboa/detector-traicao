@@ -25,6 +25,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = '/'
 
+
 def get_db():
     return psycopg2.connect(
         host=DB_HOST, dbname=DB_NAME,
@@ -92,22 +93,15 @@ def logout():
 def painel():
     conn = get_db()
     cur = conn.cursor()
+
     cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
-    plano = row[0]
-    telefones_monitorados = row[1] or []
-    whatsapp_pai = row[2]
     conn.close()
 
-    filhos = []
-    nomes_filhos = {}
-    for idx, entry in enumerate(telefones_monitorados):
-        nome, numero = parse_filho_entry(entry)
-        filhos.append({"id": idx + 1, "numero_whatsapp": numero, "nome": nome})
-        if numero:
-            nomes_filhos[numero] = nome
-        else:
-            nomes_filhos[nome] = nome
+    plano = row[0]
+    filhos_raw = row[1] or []
+    whatsapp_pai = row[2]
+    filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
 
     limites = {
         "Gratuito": 1,
@@ -116,68 +110,62 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
+    qr_code = None
+    # Não gera QR code para o pai na rota /painel
     return render_template(
         "painel.html",
         session_id=whatsapp_pai,
         plano=plano,
         filhos=filhos,
         max_filhos=max_filhos,
-        nomes_filhos=nomes_filhos
+        qr_code=qr_code
     )
-
-def parse_filho_entry(entry):
-    """Parseia uma entrada no formato 'nome @% numero' ou 'nome @% '"""
-    if not entry:
-        return "", ""
-    parts = entry.split(" @% ")
-    nome = parts[0]
-    numero = parts[1] if len(parts) > 1 else ""
-    return nome, numero
 
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
 @login_required
 def excluir_filho(filho_id):
     conn = get_db()
     cur = conn.cursor()
+
     cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     if not resultado:
         conn.close()
         return redirect(url_for("painel"))
 
-    telefones_monitorados = resultado[0] or []
-    if filho_id <= len(telefones_monitorados):
-        numero_filho = parse_filho_entry(telefones_monitorados[filho_id - 1])[1]
-        telefones_monitorados.pop(filho_id - 1)
-        cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (telefones_monitorados, current_user.id))
-        
-        if numero_filho:
-            try:
-                response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero_filho}, timeout=10)
-                response.raise_for_status()
-            except Exception as e:
-                cur.execute(
-                    "INSERT INTO log_erros (usuario_id, erro, data) VALUES (%s, %s, %s)",
-                    (current_user.id, f"Erro ao excluir sessão: {str(e)}", datetime.now())
-                )
-    
-    conn.commit()
+    filhos = resultado[0] or []
+    if filho_id <= len(filhos):
+        numero_filho = filhos[filho_id - 1]  # Captura o número do filho a ser excluído
+        del filhos[filho_id - 1]
+        cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
+        conn.commit()
+
+        # Enviar comando para o Node.js excluir a sessão
+        try:
+            response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero_filho}, timeout=10)
+            response.raise_for_status()
+            print(f"Sessão excluída para {numero_filho}: {response.text}")
+        except Exception as e:
+            print(f"Erro ao excluir sessão para {numero_filho}: {str(e)}")
+            cur.execute("""
+                INSERT INTO log_erros (usuario_id, erro, data)
+                VALUES (%s, %s, %s)
+            """, (current_user.id, f"Erro ao excluir sessão: {str(e)}", datetime.now()))
+            conn.commit()
+
     conn.close()
     return redirect(url_for("painel"))
-
 @app.route("/adicionar-filho", methods=["POST"])
 @login_required
 def adicionar_filho():
-    nome = request.form.get("nome")
-    if not nome:
-        return "Nome do filho é obrigatório.", 400
-
+    numero = request.form["numero"]
     conn = get_db()
     cur = conn.cursor()
+
     cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     plano = resultado[0]
-    telefones_monitorados = resultado[1] or []
+    filhos = resultado[1] or []
 
     limites = {
         "Gratuito": 1,
@@ -186,22 +174,34 @@ def adicionar_filho():
     }
     max_filhos = limites.get(plano, 1)
 
-    if len([entry for entry in telefones_monitorados if parse_filho_entry(entry)[1]]) >= max_filhos:
+    if len(filhos) >= max_filhos:
         conn.close()
         return render_template(
             "painel.html",
             erro="Limite de filhos atingido.",
             session_id=current_user.username,
             plano=plano,
-            filhos=[],
+            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
             max_filhos=max_filhos,
-            nomes_filhos={}
+            qr_code=None
         )
 
-    telefones_monitorados.append(f"{nome} @% ")
-    cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (telefones_monitorados, current_user.id))
+    if numero in filhos:
+        conn.close()
+        return render_template(
+        "painel.html",
+        erro="Este número já está cadastrado.",
+        session_id=current_user.username,
+        plano=plano,
+        filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+        max_filhos=max_filhos,
+        qr_code=None
+    )
+    filhos.append(numero)
+    cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
     conn.commit()
     conn.close()
+
     return redirect(url_for("painel"))
 
 @app.route("/status-conexao", methods=["POST"])
@@ -210,6 +210,7 @@ def status_conexao():
     try:
         numeros = request.json.get("numeros", [])
         status_resultados = {}
+
         for numero in numeros:
             try:
                 resp = requests.get(f"http://147.93.4.219:3000/status-sessao/{numero}", timeout=5)
@@ -217,6 +218,7 @@ def status_conexao():
                 status_resultados[numero] = dados.get("conectado", False)
             except:
                 status_resultados[numero] = False
+
         return jsonify(status_resultados)
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
@@ -229,41 +231,15 @@ def desconectar(numero):
         response.raise_for_status()
         return jsonify({"status": "sessão desconectada com sucesso"})
     except Exception as e:
+        print(f"Erro ao desconectar sessão para {numero}: {str(e)}")
         return jsonify({"erro": f"erro ao desconectar sessão: {str(e)}"}), 500
 
-@app.route("/confirmar-conexao", methods=["POST"])
+
+@app.route("/solicitar-qrcode/<numero>")
 @login_required
-def confirmar_conexao():
-    data = request.get_json()
-    numero = data.get("numero")
-    nome = data.get("nome")
-    if not numero or not nome:
-        return jsonify({"erro": "Dados incompletos"}), 400
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
-    resultado = cur.fetchone()
-    telefones_monitorados = resultado[0] if resultado else []
-
-    for i, entry in enumerate(telefones_monitorados):
-        entry_nome, entry_numero = parse_filho_entry(entry)
-        if entry_nome == nome and not entry_numero:
-            telefones_monitorados[i] = f"{nome} @% {numero}"
-            break
-    else:
-        return jsonify({"erro": "Nome não encontrado ou já possui número associado"}), 400
-
-    cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (telefones_monitorados, current_user.id))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "salvo"})
-
-@app.route("/solicitar-qrcode/<nome>")
-@login_required
-def solicitar_qrcode(nome):
+def solicitar_qrcode(numero):
     try:
-        resp = requests.get(f"http://147.93.4.219:3000/qrcode/{nome}?force=true", timeout=10)
+        resp = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
         dados = resp.json()
         return jsonify({"qrcode": dados.get("qrcode")})
     except Exception as e:
@@ -272,6 +248,7 @@ def solicitar_qrcode(nome):
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
     if request.content_type.startswith("multipart/form-data"):
+        # ÁUDIO
         numero_filho = '+' + request.form.get("para", "").strip('@s.whatsapp.net')
         numero_contato = '+' + request.form.get("de", "").strip('@s.whatsapp.net')
         horario_str = request.form.get("horario")
@@ -282,23 +259,29 @@ def mensagem_recebida():
             return jsonify({"erro": "arquivo de áudio não encontrado"}), 400
 
         audio_file = request.files["audio"]
+
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp:
                 audio_path = temp.name
                 audio_file.save(audio_path)
+
             with open(audio_path, "rb") as f:
                 transcription = client.audio.transcriptions.create(
                     model="whisper-1",
                     file=f,
                     response_format="text"
                 )
+
             conteudo = transcription.strip()
+
         except Exception as e:
             return jsonify({"erro": f"falha ao transcrever áudio: {str(e)}"}), 500
         finally:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
+
     else:
+        # TEXTO NORMAL
         data = request.get_json()
         numero_filho = '+' + data.get("para").strip('@s.whatsapp.net')
         numero_contato = '+' + data.get("de").strip('@s.whatsapp.net')
@@ -306,6 +289,7 @@ def mensagem_recebida():
         horario_str = data.get("horario")
         tipo = data.get("tipo")
 
+    # VERIFICAÇÕES PADRÃO (iguais ao seu código original)
     if not all([numero_filho, numero_contato, conteudo, horario_str]):
         return jsonify({"erro": "dados incompletos"}), 400
 
@@ -322,62 +306,89 @@ def mensagem_recebida():
 
     conn = get_db()
     cur = conn.cursor()
+
     if numero_filho != '+556792342051':
-        cur.execute(
-            "INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, horario) VALUES (%s, %s, %s, %s, %s)",
-            (numero_filho, tipo, numero_contato, conteudo, horario)
-        )
+        cur.execute("""
+            INSERT INTO mensagens_monitoradas (
+                numero_filho, tipo, numero_contato, conteudo, horario
+            ) VALUES (%s, %s, %s, %s, %s)
+        """, (numero_filho, tipo, numero_contato, conteudo, horario))
         conn.commit()
-    conn.close()
+        conn.close()
+
     return jsonify({"status": "mensagem salva com sucesso"})
 
 @app.route("/disparar-relatorios", methods=["GET"])
 def disparar_relatorios():
-    conn = get_db()
-    cur = conn.cursor()
+    conn = None
     try:
+        conn = get_db()
+        cur = conn.cursor()
+
+        print("Consultando usuários no banco de dados...")
         cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
         usuarios = cur.fetchall()
+        print(f"Usuários encontrados: {usuarios}")  # Depuração
+
         for user_id, whatsapp_pai, telefones_monitorados in usuarios:
+            print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
             if not telefones_monitorados:
+                print(f"Sem telefones monitorados para usuário {user_id}")
                 continue
-            for entry in telefones_monitorados:
-                _, numero_filho = parse_filho_entry(entry)
-                if not numero_filho:
-                    continue
-                cur.execute(
-                    "SELECT conteudo, horario FROM mensagens_monitoradas WHERE numero_filho = %s ORDER BY horario DESC",
-                    (numero_filho,)
-                )
+
+            for numero_filho in telefones_monitorados:
+                print(f"Verificando mensagens para numero_filho: {numero_filho} (tipo: {type(numero_filho).__name__})")  # Depuração do tipo
+                cur.execute("""
+                    SELECT conteudo, horario FROM mensagens_monitoradas
+                    WHERE numero_filho = %s
+                    ORDER BY horario DESC
+                """, (numero_filho,))
                 mensagens = cur.fetchall()
+                print(f"Mensagens para {numero_filho}: {mensagens} (count: {len(mensagens)})")  # Depuração com contagem
+
                 if not mensagens:
-                    continue
+                    print(f"Nenhuma mensagem encontrada para {numero_filho}, verificando dados brutos...")
+                    cur.execute("SELECT * FROM mensagens_monitoradas WHERE numero_filho = %s", (numero_filho,))
+                    dados_brutos = cur.fetchall()
+                    print(f"Dados brutos para {numero_filho}: {dados_brutos}")
+                    continue  # Pula o envio se não houver mensagens
+
                 corpo = f"Relatório de mensagens do número {numero_filho}:\n"
                 for conteudo, horario in mensagens:
                     corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
+                print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
+
+                whatsapp_pai = whatsapp_pai.strip()
+                if not whatsapp_pai.startswith("+"):
+                    whatsapp_pai = "+" + whatsapp_pai
+
                 try:
-                    response = requests.post(
-                        "http://147.93.4.219:3000/enviar-relatorio",
-                        json={"numero_destino": whatsapp_pai, "mensagem": corpo},
-                        timeout=10
-                    )
+                    print(f"Enviando relatório para {whatsapp_pai} com corpo: {corpo[:100]}...")
+                    response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
+                        "numero_destino": whatsapp_pai,
+                        "mensagem": corpo
+                    }, timeout=10)
                     response.raise_for_status()
-                    cur.execute(
-                        "DELETE FROM mensagens_monitoradas WHERE numero_filho = %s",
-                        (numero_filho,)
-                    )
+                    print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
+                    cur.execute("""
+                        DELETE FROM mensagens_monitoradas
+                        WHERE numero_filho = %s
+                    """, (numero_filho,))  # Remove o filtro de tipo
                     conn.commit()
                 except Exception as e:
-                    cur.execute(
-                        "INSERT INTO log_erros (usuario_id, erro, data) VALUES (%s, %s, %s)",
-                        (user_id, str(e), datetime.now())
-                    )
+                    print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
+                    cur.execute("""
+                        INSERT INTO log_erros (usuario_id, erro, data)
+                        VALUES (%s, %s, %s)
+                    """, (user_id, str(e), datetime.now()))
                     conn.commit()
+
+        return jsonify({"status": "relatórios processados"})
     except Exception as e:
+        print(f"Erro interno na rota /disparar-relatorios: {str(e)}")
         return jsonify({"erro": "Erro interno no servidor", "detalhes": str(e)}), 500
     finally:
-        conn.close()
-    return jsonify({"status": "relatórios processados"})
-
+        if conn:
+            conn.close()
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
