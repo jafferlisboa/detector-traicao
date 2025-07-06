@@ -22,11 +22,16 @@
         <ul class="filho-lista">
             {% for filho in filhos %}
                 <li id="linha-{{ filho.numero_whatsapp }}">
-                    <span><strong>{{ nomes_filhos.get(filho.numero_whatsapp, "Sem nome") }}</strong> — {{ filho.numero_whatsapp }}</span>
-                    <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
-                    <button type="button" class="btn-conectar" id="btn-conectar-{{ filho.numero_whatsapp }}" style="display:none;" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
-                    <button type="button" class="btn-desconectar" id="btn-desconectar-{{ filho.numero_whatsapp }}" style="display:none;" onclick="desconectar('{{ filho.numero_whatsapp }}')">Desconectar</button>
-                    <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
+                    <span><strong>{{ filho.nome }}</strong> — {{ filho.numero_whatsapp or "Aguardando conexão" }}</span>
+                    {% if filho.numero_whatsapp %}
+                        <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
+                        <button type="button" class="btn-conectar" id="btn-conectar-{{ filho.numero_whatsapp }}" style="display:none;" onclick="conectar('{{ filho.nome }}')">Conectar</button>
+                        <button type="button" class="btn-desconectar" id="btn-desconectar-{{ filho.numero_whatsapp }}" style="display:none;" onclick="desconectar('{{ filho.numero_whatsapp }}')">Desconectar</button>
+                    {% else %}
+                        <span class="status" id="status-{{ filho.nome }}">Desconectado</span>
+                        <button type="button" class="btn-conectar" id="btn-conectar-{{ filho.nome }}" onclick="conectar('{{ filho.nome }}')">Conectar</button>
+                    {% endif %}
+                    <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp or filho.nome }}"></div>
                     <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
                         <button type="submit" class="btn-excluir">Excluir</button>
                     </form>
@@ -48,10 +53,6 @@
         <p class="limite">Limite de filhos atingido para o seu plano.</p>
     {% endif %}
 
-    {% if mensagem %}
-        <p class="mensagem">{{ mensagem }}</p>
-    {% endif %}
-
     {% if erro %}
         <p class="erro">{{ erro }}</p>
     {% endif %}
@@ -61,16 +62,19 @@
 </div>
 
 <script>
-    const numeros = {{ filhos | tojson }};
-    const nomes = {{ nomes_filhos | tojson }};
-    const bloqueios = {};  // Para controle de cliques
+    const filhos = {{ filhos | tojson }};
+    const bloqueios = {};
 
     function atualizarStatus() {
-        const lista = numeros.map(f => f.numero_whatsapp);
+        const numeros = filhos
+            .map(f => f.numero_whatsapp)
+            .filter(n => n); // Exclui entradas sem número
+        if (numeros.length === 0) return;
+
         fetch("/status-conexao", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ numeros: lista })
+            body: JSON.stringify({ numeros: numeros })
         })
         .then(r => r.json())
         .then(statuses => {
@@ -81,28 +85,22 @@
                 const qrArea = document.getElementById(`qrcode-${numero}`);
 
                 if (statusEl) statusEl.innerText = status ? "Conectado" : "Desconectado";
-
-                if (status) {
-                    if (btnConectar) btnConectar.style.display = "none";
-                    if (btnDesconectar) btnDesconectar.style.display = "inline-block";
-                    if (qrArea) qrArea.innerHTML = "";  // Limpa QR após conexão
-                } else {
-                    if (btnConectar) btnConectar.style.display = "inline-block";
-                    if (btnDesconectar) btnDesconectar.style.display = "none";
-                }
+                if (btnConectar) btnConectar.style.display = status ? "none" : "inline-block";
+                if (btnDesconectar) btnDesconectar.style.display = status ? "inline-block" : "none";
+                if (qrArea && status) qrArea.innerHTML = "";
             }
         });
     }
 
-    function conectar(numero) {
-        if (bloqueios[numero]?.conectar) return;
-        bloqueios[numero] = { ...bloqueios[numero], conectar: true };
-        setTimeout(() => bloqueios[numero].conectar = false, 10000);
+    function conectar(nome) {
+        if (bloqueios[nome]?.conectar) return;
+        bloqueios[nome] = { ...bloqueios[nome], conectar: true };
+        setTimeout(() => bloqueios[nome].conectar = false, 10000);
 
-        fetch(`/solicitar-qrcode/${numero}`)
+        fetch(`/solicitar-qrcode/${encodeURIComponent(nome)}`)
             .then(r => r.json())
             .then(data => {
-                const el = document.getElementById(`qrcode-${numero}`);
+                const el = document.getElementById(`qrcode-${nome}`);
                 if (el && data.qrcode) {
                     el.innerHTML = `<img src="${data.qrcode}" width="200">`;
                 } else {
@@ -119,7 +117,7 @@
         fetch(`/desconectar/${numero}`, { method: "POST" })
             .then(r => r.json())
             .then(res => {
-                if (res.status === "ok") {
+                if (res.status === "sessão desconectada com sucesso") {
                     atualizarStatus();
                 } else {
                     alert("Erro ao desconectar.");
