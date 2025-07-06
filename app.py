@@ -103,9 +103,11 @@ def painel():
     nomes_filhos = {}
     for idx, entry in enumerate(telefones_monitorados):
         nome, numero = parse_filho_entry(entry)
-        if numero:  # Apenas inclui filhos com número válido
-            filhos.append({"id": idx + 1, "numero_whatsapp": numero, "nome": nome})
+        filhos.append({"id": idx + 1, "numero_whatsapp": numero, "nome": nome})
+        if numero:
             nomes_filhos[numero] = nome
+        else:
+            nomes_filhos[nome] = nome  # Usa o nome como chave quando não há número
 
     limites = {
         "Gratuito": 1,
@@ -241,22 +243,26 @@ def confirmar_conexao():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
-    resultado = cur.fetchone()
-    telefones_monitorados = resultado[0] if resultado else []
+ Jonga
+        resultado = cur.fetchone()
+        telefones_monitorados = resultado[0] if resultado else []
 
-    # Atualiza a entrada com o nome correspondente
-    for i, entry in enumerate(telefones_monitorados):
-        entry_nome, entry_numero = parse_filho_entry(entry)
-        if entry_nome == nome and not entry_numero:
-            telefones_monitorados[i] = f"{nome} @% {numero}"
-            break
-    else:
-        return jsonify({"erro": "Nome não encontrado ou já possui número associado"}), 400
+        # Atualiza a entrada com o nome correspondente
+        for i, entry in enumerate(telefones_monitorados):
+            entry_nome, entry_numero = parse_filho_entry(entry)
+            if entry_nome == nome and not entry_numero:
+                telefones_monitorados[i] = f"{nome} @% {numero}"
+                break
+        else:
+            return jsonify({"erro": "Nome não encontrado ou já possui número associado"}), 400
 
-    cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (telefones_monitorados, current_user.id))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "salvo"})
+        cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (telefones_monitorados, current_user.id))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "salvo"})
+    except Exception as e:
+        conn.close()
+        return jsonify({"erro": f"Erro ao confirmar conexão: {str(e)}"}), 500
 
 @app.route("/solicitar-qrcode/<nome>")
 @login_required
