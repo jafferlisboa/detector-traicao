@@ -429,7 +429,6 @@ def status_conexao():
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
-```python
 @app.route("/desconectar/<numero>", methods=["POST"])
 @login_required
 def desconectar(numero):
@@ -444,7 +443,6 @@ def desconectar(numero):
     except Exception as e:
         print(f"Erro ao desconectar sessões para últimos 8 dígitos {ultimos8}: {str(e)}")
         return jsonify({"erro": f"erro ao desconectar sessões: {str(e)}"}), 500
-```
 
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
