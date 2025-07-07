@@ -432,8 +432,6 @@ def status_conexao():
 @app.route("/desconectar/<ultimos8>", methods=["POST"])
 @login_required
 def desconectar(ultimos8):
-    if not ultimos8.match(/^\d{8}$/):
-        return jsonify({"erro": "Últimos 8 dígitos inválidos"}), 400
     try:
         response = requests.post("http://147.93.4.219:3000/excluir-sessoes-por-digitos", json={"ultimos8": ultimos8}, timeout=10)
         response.raise_for_status()
