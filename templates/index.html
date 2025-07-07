@@ -2,20 +2,37 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Monitoramento</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Espia WhatsApp - Monitore com Segurança</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
-    <h2>Login</h2>
-    {% if erro %}
-        <p style="color:red;">{{ erro }}</p>
-    {% endif %}
-    <form method="post">
-        <label>Usuário:</label><br>
-        <input type="text" name="username" required><br><br>
-        <label>Senha:</label><br>
-        <input type="password" name="password" required><br><br>
-        <button type="submit">Entrar</button>
-    </form>
-    <p>Não tem conta? <a href="{{ url_for('register') }}">Cadastre-se</a></p>
+    <div class="container">
+        <header>
+            <h1>Espia WhatsApp</h1>
+            <p class="slogan">Monitore conversas com segurança e discrição!</p>
+        </header>
+        <main>
+            <section class="login-section">
+                <h2>Entre Agora e Comece a Monitorar</h2>
+                <p>Proteja quem você ama com nosso sistema avançado de monitoramento de WhatsApp. Cadastre-se hoje e tenha controle total!</p>
+                {% if erro %}
+                    <p class="erro">{{ erro }}</p>
+                {% endif %}
+                <form method="post" class="login-form">
+                    <label for="username">Número de WhatsApp (ex.: +5512345678900):</label>
+                    <input type="text" name="username" id="username" required placeholder="+5512345678900">
+                    <label for="password">Senha:</label>
+                    <input type="password" name="password" id="password" required placeholder="Digite sua senha">
+                    <button type="submit" class="btn-login">Entrar</button>
+                </form>
+                <p class="register-link">Não tem conta? <a href="{{ url_for('register') }}">Cadastra-se agora!</a></p>
+            </section>
+        </main>
+        <footer>
+            <p>&copy; 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+        </footer>
+    </div>
 </body>
 </html>
