@@ -11,7 +11,7 @@
     <div class="container">
         <header>
             <h1>Espia WhatsApp</h1>
-            <p class="slogan">Monitore as conversas de seus filhos com segurança e discrição!</p>
+            <p class="slogan">Monitore conversas com segurança e discrição!</p>
         </header>
         <main>
             <section class="login-section">
@@ -29,9 +29,22 @@
                 </form>
                 <p class="register-link">Não tem conta? <a href="{{ url_for('register') }}">Cadastra-se agora!</a></p>
             </section>
+            <section class="como-funciona">
+                <h2>Como Funciona?</h2>
+                <div class="steps">
+                    <div class="step">
+                        <img src="{{ url_for('static', filename='qrcode.png') }}" alt="QR Code">
+                        <p>1. Escaneie o QR Code do WhatsApp do seu filho.</p>
+                    </div>
+                    <div class="step">
+                        <img src="{{ url_for('static', filename='messages.png') }}" alt="Mensagens">
+                        <p><strong>2. Receba no WhatsApp automaticamente todas as mensagens que ele enviar ou receber!</strong></p>
+                    </div>
+                </div>
+            </section>
         </main>
         <footer>
-            <p>&copy; 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+            <p>© 2025 Espia WhatsApp. Todos os direitos reservados.</p>
         </footer>
     </div>
 </body>
