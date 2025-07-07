@@ -69,7 +69,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
-        whatsapp_pai = request.form['username'].strip()  # Assumindo que username é o número do WhatsApp
+        whatsapp_pai = request.form['whatsapp_pai'].strip()
 
         # Normalizar o número do whatsapp_pai
         numero = whatsapp_pai
@@ -85,8 +85,8 @@ def register():
         # Criar três variações do número
         ddd = numero[:2]
         resto = numero[2:]
-        numero_com_9 = f"{ddd}9{resto}" if len(resto) == 8 else numero  # Adiciona 9 após o DDD
-        numero_sem_9 = f"{ddd}{resto[1:]}" if len(resto) == 9 and resto[0] == '9' else numero  # Remove 9, se presente
+        numero_com_9 = f"{ddd}9{resto}" if len(resto) == 8 else numero
+        numero_sem_9 = f"{ddd}{resto[1:]}" if len(resto) == 9 and resto[0] == '9' else numero
         numero_original = numero
 
         # Adicionar +55 às variações
@@ -99,16 +99,16 @@ def register():
         try:
             conn = get_db()
             cur = conn.cursor()
-            # Inserir o usuário com o número original (será atualizado após confirmação)
-            cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados) VALUES (%s, %s, %s, %s, %s)",
-                        (username, password, 'Gratuito', f"+55{numero_original}", []))
+            # Inserir o usuário com o número original e confirmação pendente
+            cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado) VALUES (%s, %s, %s, %s, %s, %s)",
+                        (username, password, 'Gratuito', f"+55{numero_original}", [], False))
             conn.commit()
             conn.close()
         except psycopg2.IntegrityError:
             return render_template('register.html', erro="Usuário já existe.")
 
         # Enviar mensagens de confirmação para as três variações
-        for num in set(numeros_para_confirmacao):  # Evitar duplicatas
+        for num in set(numeros_para_confirmacao):
             try:
                 confirmacao_url = f"https://detectordetraicao.digital/confirmar-numero/{num}"
                 mensagem = f"Confirme seu número de WhatsApp clicando no link: {confirmacao_url}"
@@ -134,14 +134,12 @@ def confirmar_numero(numero):
     try:
         conn = get_db()
         cur = conn.cursor()
-        # Buscar usuário com base nos últimos 8 dígitos do whatsapp_pai
         ultimos_8 = numero[-8:]
         cur.execute("SELECT id FROM usuarios WHERE RIGHT(whatsapp_pai, 8) = %s", (ultimos_8,))
         user = cur.fetchone()
         if user:
             user_id = user[0]
-            # Atualizar o whatsapp_pai com o número confirmado
-            cur.execute("UPDATE usuarios SET whatsapp_pai = %s WHERE id = %s", (numero, user_id))
+            cur.execute("UPDATE usuarios SET whatsapp_pai = %s, confirmado = %s WHERE id = %s", (numero, True, user_id))
             conn.commit()
             conn.close()
             return jsonify({"status": "Número confirmado com sucesso"})
@@ -163,13 +161,14 @@ def painel():
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
     conn.close()
 
     plano = row[0]
     filhos_raw = row[1] or []
     whatsapp_pai = row[2]
+    confirmado = row[3]
     filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
 
     limites = {
@@ -179,6 +178,10 @@ def painel():
     }
     max_filhos = limites.get(plano, 1)
 
+    mensagem_confirmacao = None
+    if not confirmado:
+        mensagem_confirmacao = "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número."
+
     qr_code = None
     return render_template(
         "painel.html",
@@ -186,7 +189,8 @@ def painel():
         plano=plano,
         filhos=filhos,
         max_filhos=max_filhos,
-        qr_code=qr_code
+        qr_code=qr_code,
+        mensagem_confirmacao=mensagem_confirmacao
     )
 
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
