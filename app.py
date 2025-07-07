@@ -402,7 +402,7 @@ def solicitar_qrcode(numero):
             return jsonify({"erro": "Número não autorizado"}), 403
 
         # Faz a requisição ao servidor Node.js para obter o QR code
-        response = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
+        response = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=15)
         response.raise_for_status()
         data = response.json()
         return jsonify({"qrcode": data.get("qrcode", "")})
