@@ -429,9 +429,14 @@ def status_conexao():
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
-@app.route("/desconectar/<ultimos8>", methods=["POST"])
+```python
+@app.route("/desconectar/<numero>", methods=["POST"])
 @login_required
-def desconectar(ultimos8):
+def desconectar(numero):
+    numero = numero.strip()
+    ultimos8 = numero[-8:]
+    if not ultimos8.isdigit() or len(ultimos8) != 8:
+        return jsonify({"erro": "Últimos 8 dígitos inválidos"}), 400
     try:
         response = requests.post("http://147.93.4.219:3000/excluir-sessoes-por-digitos", json={"ultimos8": ultimos8}, timeout=10)
         response.raise_for_status()
@@ -439,6 +444,7 @@ def desconectar(ultimos8):
     except Exception as e:
         print(f"Erro ao desconectar sessões para últimos 8 dígitos {ultimos8}: {str(e)}")
         return jsonify({"erro": f"erro ao desconectar sessões: {str(e)}"}), 500
+```
 
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
