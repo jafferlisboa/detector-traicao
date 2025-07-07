@@ -19,8 +19,22 @@
                 <div class="info-user">
                     <p><strong>Usuário:</strong> {{ session_id }}</p>
                     <p><strong>Plano:</strong> {{ plano }}</p>
-                    <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
-                    <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
+                    <p><strong>Limite de WhatsApps:</strong> {{ max_filhos }}</p>
+                    <p><strong>WhatsApps cadastrados:</strong> {{ filhos|length }}</p>
+                    {% if dias_restantes is not none %}
+                        <p><strong>Dias restantes (teste gratuito):</strong> {{ dias_restantes }}</p>
+                    {% endif %}
+                    {% if comprar_agora %}
+                        <div class="comprar-agora">
+                            <p>Seu teste gratuito expirou! Escolha um plano para continuar:</p>
+                            <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497db5aae0197e4eee8990326" class="btn-plano">Plano Pro (R$ 38,90/mês - 1 celular)</a>
+                            <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497e081eb0197e4f713f8015a" class="btn-plano">Plano Premium (R$ 99,70/mês - 3 celulares)</a>
+                        </div>
+                    {% elif plano == "Pro" %}
+                        <p class="upgrade-discreto">
+                            Quer monitorar mais celulares? <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497e081eb0197e4f713f8015a">Faça upgrade para o Plano Premium (R$ 99,70/mês - 3 celulares)</a>
+                        </p>
+                    {% endif %}
                 </div>
                 {% if mensagem_confirmacao %}
                     <p class="mensagem-confirmacao">{{ mensagem_confirmacao }}</p>
@@ -28,7 +42,7 @@
                 {% if erro %}
                     <p class="erro">{{ erro }}</p>
                 {% endif %}
-                <h3>Filhos Monitorados</h3>
+                <h3>WhatsApps Monitorados</h3>
                 {% if filhos %}
                     <ul class="filho-lista">
                         {% for filho in filhos %}
@@ -45,23 +59,23 @@
                         {% endfor %}
                     </ul>
                 {% else %}
-                    <p>Nenhum filho cadastrado ainda.</p>
+                    <p>Nenhum WhatsApp cadastrado ainda.</p>
                 {% endif %}
-                {% if filhos|length < max_filhos %}
-                    <h3>Adicionar Novo Filho</h3>
+                {% if filhos|length < max_filhos and not comprar_agora %}
+                    <h3>Adicionar Novo WhatsApp</h3>
                     <form method="post" action="{{ url_for('adicionar_filho') }}" class="add-filho-form">
                         <label for="numero">Número do WhatsApp (com DDI, ex.: +5512345678900):</label>
                         <input type="text" name="numero" id="numero" required placeholder="+5512345678900">
                         <button type="submit" class="btn-add">Adicionar</button>
                     </form>
                 {% else %}
-                    <p class="limite">Limite de filhos atingido para o seu plano.</p>
+                    <p class="limite">Limite de WhatsApps atingido para o seu plano.</p>
                 {% endif %}
                 <p class="logout-link"><a href="{{ url_for('logout') }}">Sair</a></p>
             </section>
         </main>
         <footer>
-            <p>&copy; 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+            <p>© 2025 Espia WhatsApp. Todos os direitos reservados.</p>
         </footer>
     </div>
     <script>
@@ -93,7 +107,7 @@
                         if (elConectar) elConectar.style.display = "inline-block";
                         if (elDesconectar) elDesconectar.style.display = "none";
                         if (elQrcode && elQrcode.innerHTML) {
-                            conectar(numero); // Atualizar QR code se já exibido
+                            conectar(numero);
                         }
                     }
                 }
@@ -102,7 +116,7 @@
 
         function conectar(numero) {
             if (clickCooldowns[numero] && Date.now() - clickCooldowns[numero] < 5000) {
-                return; // Impede duplo clique
+                return;
             }
             clickCooldowns[numero] = Date.now();
             const btn = document.getElementById(`btn-conectar-${numero}`);
@@ -124,7 +138,7 @@
 
         function desconectar(numero) {
             if (clickCooldowns[numero] && Date.now() - clickCooldowns[numero] < 5000) {
-                return; // Impede duplo clique
+                return;
             }
             clickCooldowns[numero] = Date.now();
             const btn = document.getElementById(`btn-desconectar-${numero}`);
@@ -136,24 +150,24 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" }
             })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === "sessão desconectada com sucesso") {
-                        const elStatus = document.getElementById(`status-${numero}`);
-                        const elConectar = document.getElementById(`btn-conectar-${numero}`);
-                        const elDesconectar = document.getElementById(`btn-desconectar-${numero}`);
-                        const elQrcode = document.getElementById(`qrcode-${numero}`);
-                        if (elStatus) elStatus.innerText = "Desconectado";
-                        if (elConectar) elConectar.style.display = "inline-block";
-                        if (elDesconectar) elDesconectar.style.display = "none";
-                        if (elQrcode) elQrcode.innerHTML = "";
-                    } else {
-                        alert("Erro ao desconectar: " + data.erro);
-                    }
-                });
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === "sessão desconectada com sucesso") {
+                    const elStatus = document.getElementById(`status-${numero}`);
+                    const elConectar = document.getElementById(`btn-conectar-${numero}`);
+                    const elDesconectar = document.getElementById(`btn-desconectar-${numero}`);
+                    const elQrcode = document.getElementById(`qrcode-${numero}`);
+                    if (elStatus) elStatus.innerText = "Desconectado";
+                    if (elConectar) elConectar.style.display = "inline-block";
+                    if (elDesconectar) elDesconectar.style.display = "none";
+                    if (elQrcode) elQrcode.innerHTML = "";
+                } else {
+                    alert("Erro ao desconectar: " + data.erro);
+                }
+            });
         }
 
-        setInterval(atualizarStatus, 5000); // Atualiza a cada 5 segundos
+        setInterval(atualizarStatus, 5000);
         atualizarStatus();
     </script>
 </body>
