@@ -164,16 +164,30 @@ def logout():
 def painel():
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado, data_criacao, username FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
-    conn.close()
-
     plano = row[0]
-    filhos_raw = row[1] or []
+    filhos_numeros = row[1] or []
     whatsapp_pai = row[2]
     confirmado = row[3]
     data_criacao = row[4]
-    filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
+    username_pai = row[5]
+
+    # Busca nomes dos filhos na tabela filhos
+    filhos = []
+    for idx, numero in enumerate(filhos_numeros):
+        cur.execute(
+            "SELECT nome_filho FROM filhos WHERE username_pai = %s AND whatsapp_filho = %s",
+            (username_pai, numero)
+        )
+        nome_filho = cur.fetchone()
+        filhos.append({
+            "id": idx + 1,
+            "numero_whatsapp": numero,
+            "nome_filho": nome_filho[0] if nome_filho else "Sem nome"
+        })
+
+    conn.close()
 
     limites = {
         "Gratuito": 1,
@@ -206,19 +220,26 @@ def painel():
 def excluir_filho(filho_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT telefones_monitorados, username FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     if not resultado:
         conn.close()
         return redirect(url_for("painel"))
 
     filhos = resultado[0] or []
+    username_pai = resultado[1]
     if filho_id <= len(filhos):
         numero_filho = filhos[filho_id - 1]
         if not numero_filho.startswith("+"):
             numero_filho = f"+{numero_filho}"
         del filhos[filho_id - 1]
         cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
+        
+        # Remove o filho da tabela filhos
+        cur.execute(
+            "DELETE FROM filhos WHERE username_pai = %s AND whatsapp_filho = %s",
+            (username_pai, numero_filho)
+        )
         conn.commit()
 
         try:
@@ -240,6 +261,8 @@ def excluir_filho(filho_id):
 @login_required
 def adicionar_filho():
     numero = request.form["numero"].strip()
+    nome_filho = request.form["nome_filho"].strip()
+
     if not numero.startswith("+"):
         numero = f"+{numero}"
     if not re.match(r"^\+\d{12,13}$", numero):
@@ -263,7 +286,35 @@ def adicionar_filho():
             erro="Número inválido. Use o formato internacional (ex: +5512345678900).",
             session_id=session_id,
             plano=plano,
-            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            filhos=[{"id": idx + 1, "numero_whatsapp": num, "nome_filho": ""} for idx, num in enumerate(filhos)],  # Nome temporário vazio
+            max_filhos=max_filhos,
+            mensagem_confirmacao=None if confirmado else "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número.",
+            dias_restantes=dias_restantes,
+            comprar_agora=comprar_agora
+        )
+
+    if not nome_filho:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
+        resultado = cur.fetchone()
+        plano = resultado[0]
+        filhos = resultado[1] or []
+        session_id = resultado[2]
+        confirmado = resultado[3]
+        data_criacao = resultado[4]
+        conn.close()
+        limites = {"Gratuito": 1, "Pro": 1, "Premium": 3}
+        max_filhos = limites.get(plano, 1)
+        dias_passados = (datetime.now() - data_criacao).days
+        dias_restantes = max(0, 2 - dias_passados) if plano == "Gratuito" else None
+        comprar_agora = dias_restantes == 0 if plano == "Gratuito" else False
+        return render_template(
+            "painel.html",
+            erro="O nome do filho é obrigatório.",
+            session_id=session_id,
+            plano=plano,
+            filhos=[{"id": idx + 1, "numero_whatsapp": num, "nome_filho": ""} for idx, num in enumerate(filhos)],  # Nome temporário vazio
             max_filhos=max_filhos,
             mensagem_confirmacao=None if confirmado else "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número.",
             dias_restantes=dias_restantes,
@@ -272,11 +323,12 @@ def adicionar_filho():
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT plano, telefones_monitorados, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados, data_criacao, username FROM usuarios WHERE id = %s", (current_user.id,))
     resultado = cur.fetchone()
     plano = resultado[0]
     filhos = resultado[1] or []
     data_criacao = resultado[2]
+    username_pai = resultado[3]
 
     limites = {"Gratuito": 1, "Pro": 1, "Premium": 3}
     max_filhos = limites.get(plano, 1)
@@ -288,7 +340,7 @@ def adicionar_filho():
             erro="Período de teste gratuito expirado. Faça upgrade para continuar.",
             session_id=current_user.username,
             plano=plano,
-            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            filhos=[{"id": idx + 1, "numero_whatsapp": num, "nome_filho": ""} for idx, num in enumerate(filhos)],  # Nome temporário vazio
             max_filhos=max_filhos,
             comprar_agora=True
         )
@@ -300,7 +352,7 @@ def adicionar_filho():
             erro="Limite de filhos atingido.",
             session_id=current_user.username,
             plano=plano,
-            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            filhos=[{"id": idx + 1, "numero_whatsapp": num, "nome_filho": ""} for idx, num in enumerate(filhos)],  # Nome temporário vazio
             max_filhos=max_filhos,
             comprar_agora=plano == "Gratuito" and (datetime.now() - data_criacao).days > 2
         )
@@ -312,13 +364,20 @@ def adicionar_filho():
             erro="Este número já está cadastrado.",
             session_id=current_user.username,
             plano=plano,
-            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            filhos=[{"id": idx + 1, "numero_whatsapp": num, "nome_filho": ""} for idx, num in enumerate(filhos)],  # Nome temporário vazio
             max_filhos=max_filhos,
             comprar_agora=plano == "Gratuito" and (datetime.now() - data_criacao).days > 2
         )
 
+    # Adiciona o número à lista de telefones monitorados
     filhos.append(numero)
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
+
+    # Adiciona o filho à tabela filhos
+    cur.execute(
+        "INSERT INTO filhos (username_pai, nome_filho, whatsapp_filho) VALUES (%s, %s, %s)",
+        (username_pai, nome_filho, numero)
+    )
     conn.commit()
     conn.close()
     return redirect(url_for("painel"))
