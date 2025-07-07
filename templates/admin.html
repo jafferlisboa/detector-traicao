@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin - Espia WhatsApp</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 90%;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .slogan {
+            font-size: 1.2em;
+            color: #e0e0e0;
+            margin-top: 10px;
+        }
+
+        .admin-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            font-size: 0.9em;
+            color: #e0e0e0;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            outline: none;
+        }
+
+        input[readonly] {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-salvar {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #ffd700;
+            color: #1e3c72;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-salvar:hover {
+            background: #e6c200;
+        }
+
+        .logout-link a {
+            color: #ffd700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .logout-link a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #e0e0e0;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2em; }
+            .slogan { font-size: 1em; }
+            h2 { font-size: 1.5em; }
+            .admin-section { padding: 20px; }
+            th, td { font-size: 0.8em; padding: 8px; }
+            input, select { font-size: 0.8em; }
+            .btn-salvar { font-size: 0.9em; padding: 8px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Espia WhatsApp</h1>
+            <p class="slogan">Painel de Administração</p>
+        </header>
+        <main>
+            <section class="admin-section">
+                <h2>Gerenciar Usuários</h2>
+                <form method="post">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Senha</th>
+                                <th>Plano</th>
+                                <th>WhatsApp Pai</th>
+                                <th>Telefones Monitorados</th>
+                                <th>Confirmado</th>
+                                <th>Data Criação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                                <tr>
+                                    <td><input type="text" name="id[]" value="{{ usuario[0] }}" readonly></td>
+                                    <td><input type="text" name="username[]" value="{{ usuario[1] }}"></td>
+                                    <td><input type="text" name="password[]" value=""></td>
+                                    <td>
+                                        <select name="plano[]">
+                                            <option value="Gratuito" {% if usuario[3] == 'Gratuito' %}selected{% endif %}>Gratuito</option>
+                                            <option value="Pro" {% if usuario[3] == 'Pro' %}selected{% endif %}>Pro</option>
+                                            <option value="Premium" {% if usuario[3] == 'Premium' %}selected{% endif %}>Premium</option>
+                                        </select>
+                                    </td>
+                                    <td><input type="text" name="whatsapp_pai[]" value="{{ usuario[4] }}"></td>
+                                    <td><input type="text" name="telefones_monitorados[]" value="{{ usuario[5]|join(',') }}"></td>
+                                    <td><input type="text" name="confirmado[]" value="{{ usuario[6] }}"></td>
+                                    <td><input type="text" name="data_criacao[]" value="{{ usuario[7] }}"></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button type="submit" class="btn-salvar">Salvar Alterações</button>
+                </form>
+                <p class="logout-link"><a href="{{ url_for('logout') }}">Sair</a></p>
+            </section>
+        </main>
+        <footer>
+            <p>© 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+</body>
+</html>
