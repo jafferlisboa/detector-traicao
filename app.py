@@ -418,8 +418,9 @@ def status_conexao():
         for numero in numeros:
             if not numero.startswith("+"):
                 numero = f"+{numero}"
+            ultimos_8 = numero[-8:]
             try:
-                resp = requests.get(f"http://147.93.4.219:3000/status-sessao/{numero}", timeout=5)
+                resp = requests.get(f"http://147.93.4.219:3000/status-sessao-por-digitos/{ultimos_8}", timeout=5)
                 dados = resp.json()
                 status_resultados[numero] = dados.get("conectado", False)
             except:
