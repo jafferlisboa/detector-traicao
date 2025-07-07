@@ -1,11 +1,10 @@
-/* static/css/index.css */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Arial', sans-serif;
-    -webkit-tap-highlight-color: transparent; /* Remove destaque ao clicar */
-    user-select: none; /* Desativa seleção de texto */
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 body {
@@ -41,6 +40,14 @@ h1 {
 }
 
 .login-section {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: 30px;
+}
+
+.como-funciona {
     background: rgba(255, 255, 255, 0.1);
     padding: 30px;
     border-radius: 10px;
@@ -124,6 +131,26 @@ input:focus {
     text-decoration: underline;
 }
 
+.como-funciona .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.step img {
+    width: 100px;
+    margin-bottom: 10px;
+}
+
+.step p {
+    font-size: 1.1em;
+}
+
+.step p strong {
+    color: #ffd700;
+    font-size: 1.2em;
+}
+
 footer {
     margin-top: 30px;
     font-size: 0.9em;
@@ -131,24 +158,10 @@ footer {
 }
 
 @media (max-width: 600px) {
-    h1 {
-        font-size: 2em;
-    }
-
-    .slogan {
-        font-size: 1em;
-    }
-
-    h2 {
-        font-size: 1.5em;
-    }
-
-    .login-section {
-        padding: 20px;
-    }
-
-    input, .btn-login {
-        font-size: 0.9em;
-        padding: 10px;
-    }
+    h1 { font-size: 2em; }
+    .slogan { font-size: 1em; }
+    h2 { font-size: 1.5em; }
+    .login-section, .como-funciona { padding: 20px; }
+    input, .btn-login { font-size: 0.9em; padding: 10px; }
+    .step img { width: 80px; }
 }
