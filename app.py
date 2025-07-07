@@ -522,9 +522,13 @@ def disparar_relatorios():
                 if not numero_filho.startswith("+"):
                     numero_filho = f"+{numero_filho}"
                 ultimos_8 = numero_filho[-8:]
+                # Extrai o DDD do número do filho (após remover +55 ou 55)
+                ddd_filho = numero_filho.replace("+55", "").replace("55", "")[:2]
+                
+                # Consulta mensagens apenas se o DDD corresponde
                 cur.execute(
-                    "SELECT conteudo, horario FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s ORDER BY horario DESC",
-                    (ultimos_8,)
+                    "SELECT conteudo, horario FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s AND SUBSTRING(numero_filho FROM 3 FOR 2) = %s ORDER BY horario DESC",
+                    (ultimos_8, ddd_filho)
                 )
                 mensagens = cur.fetchall()
                 if not mensagens:
@@ -543,9 +547,10 @@ def disparar_relatorios():
                         "mensagem": corpo
                     }, timeout=10)
                     response.raise_for_status()
+                    # Remove apenas as mensagens correspondentes ao DDD
                     cur.execute(
-                        "DELETE FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s",
-                        (ultimos_8,)
+                        "DELETE FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s AND SUBSTRING(numero_filho FROM 3 FOR 2) = %s",
+                        (ultimos_8, ddd_filho)
                     )
                     conn.commit()
                 except Exception as e:
