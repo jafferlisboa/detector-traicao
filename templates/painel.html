@@ -47,7 +47,7 @@
                     <ul class="filho-lista">
                         {% for filho in filhos %}
                             <li id="linha-{{ filho.numero_whatsapp }}">
-                                <span>{{ filho.numero_whatsapp }}</span>
+                                <span>{{ filho.nome_filho }} ({{ filho.numero_whatsapp }})</span>
                                 <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
                                 <button type="button" class="btn-conectar" id="btn-conectar-{{ filho.numero_whatsapp }}" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
                                 <button type="button" class="btn-desconectar" id="btn-desconectar-{{ filho.numero_whatsapp }}" onclick="desconectar('{{ filho.numero_whatsapp }}')" style="display: none;">Desconectar</button>
@@ -64,6 +64,8 @@
                 {% if filhos|length < max_filhos and not comprar_agora %}
                     <h3>Adicionar Novo WhatsApp</h3>
                     <form method="post" action="{{ url_for('adicionar_filho') }}" class="add-filho-form">
+                        <label for="nome_filho">Nome do Filho:</label>
+                        <input type="text" name="nome_filho" id="nome_filho" required placeholder="Nome do filho">
                         <label for="numero">Número do WhatsApp (com DDI, ex.: +5512345678900):</label>
                         <input type="text" name="numero" id="numero" required placeholder="+5512345678900">
                         <button type="submit" class="btn-add">Adicionar</button>
@@ -106,9 +108,7 @@
                     } else {
                         if (elConectar) elConectar.style.display = "inline-block";
                         if (elDesconectar) elDesconectar.style.display = "none";
-                        if (elQrcode && elQrcode.innerHTML) {
-                            conectar(numero);
-                        }
+                        // Não solicita novo QR code aqui
                     }
                 }
             });
