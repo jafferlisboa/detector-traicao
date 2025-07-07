@@ -321,15 +321,34 @@ def adicionar_filho():
     cur.execute("UPDATE usuarios SET telefones_monitorados = %s WHERE id = %s", (filhos, current_user.id))
     conn.commit()
     conn.close()
+    return redirect(url_for("painel"))
 
+@app.route("/solicitar-qrcode/<numero>", methods=["GET"])
+@login_required
+def solicitar_qrcode(numero):
     try:
+        if not numero.startswith("+"):
+            numero = f"+{numero}"
+        if not re.match(r"^\+\d{12,13}$", numero):
+            return jsonify({"erro": "Número inválido"}), 400
+        
+        # Verifica se o número pertence aos telefones monitorados do usuário
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+        resultado = cur.fetchone()
+        conn.close()
+        
+        if not resultado or numero not in (resultado[0] or []):
+            return jsonify({"erro": "Número não autorizado"}), 403
+
+        # Faz a requisição ao servidor Node.js para obter o QR code
         response = requests.get(f"http://147.93.4.219:3000/qrcode/{numero}?force=true", timeout=10)
         response.raise_for_status()
-        print(f"Solicitação de QR code enviada para {numero}: {response.text}")
+        data = response.json()
+        return jsonify({"qrcode": data.get("qrcode", "")})
     except Exception as e:
-        print(f"Erro ao solicitar QR code para {numero}: {str(e)}")
-
-    return redirect(url_for("painel"))
+        return jsonify({"erro": f"Erro ao solicitar QR code: {str(e)}"}), 500
 
 @app.route("/status-conexao", methods=["POST"])
 @login_required
