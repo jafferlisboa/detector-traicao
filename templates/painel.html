@@ -2,107 +2,159 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Monitoramento</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='painel.css') }}">
-    <style>
-        .qrcode-area img {
-            margin-top: 10px;
-            border: 1px solid #ccc;
-        }
-        .status {
-            margin-left: 15px;
-            font-weight: bold;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Painel - Espia WhatsApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/painel.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
-<div class="container">
-    <h1>Painel de Monitoramento</h1>
-    <div class="topo">
-        <p><strong>Usuário:</strong> {{ session_id }}</p>
-        <p><strong>Plano:</strong> {{ plano }}</p>
-        <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
-        <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
-    </div>
-
-    <hr>
-
-    <h2>Filhos Monitorados</h2>
-    {% if filhos %}
-        <ul class="filho-lista">
-            {% for filho in filhos %}
-                <li id="linha-{{ filho.numero_whatsapp }}">
-                    <span>{{ filho.numero_whatsapp }}</span>
-                    <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
-                    <button type="button" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
-                    <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
-                    <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
-                        <button type="submit" class="btn-excluir">Excluir</button>
+    <div class="container">
+        <header>
+            <h1>Espia WhatsApp</h1>
+            <p class="slogan">Controle total das conversas com segurança!</p>
+        </header>
+        <main>
+            <section class="painel-section">
+                <h2>Painel de Monitoramento</h2>
+                <div class="info-user">
+                    <p><strong>Usuário:</strong> {{ session_id }}</p>
+                    <p><strong>Plano:</strong> {{ plano }}</p>
+                    <p><strong>Filhos permitidos:</strong> {{ max_filhos }}</p>
+                    <p><strong>Filhos cadastrados:</strong> {{ filhos|length }}</p>
+                </div>
+                {% if mensagem_confirmacao %}
+                    <p class="mensagem-confirmacao">{{ mensagem_confirmacao }}</p>
+                {% endif %}
+                {% if erro %}
+                    <p class="erro">{{ erro }}</p>
+                {% endif %}
+                <h3>Filhos Monitorados</h3>
+                {% if filhos %}
+                    <ul class="filho-lista">
+                        {% for filho in filhos %}
+                            <li id="linha-{{ filho.numero_whatsapp }}">
+                                <span>{{ filho.numero_whatsapp }}</span>
+                                <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
+                                <button type="button" class="btn-conectar" id="btn-conectar-{{ filho.numero_whatsapp }}" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
+                                <button type="button" class="btn-desconectar" id="btn-desconectar-{{ filho.numero_whatsapp }}" onclick="desconectar('{{ filho.numero_whatsapp }}')" style="display: none;">Desconectar</button>
+                                <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
+                                <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn-excluir">Excluir</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Nenhum filho cadastrado ainda.</p>
+                {% endif %}
+                {% if filhos|length < max_filhos %}
+                    <h3>Adicionar Novo Filho</h3>
+                    <form method="post" action="{{ url_for('adicionar_filho') }}" class="add-filho-form">
+                        <label for="numero">Número do WhatsApp (com DDI, ex.: +5512345678900):</label>
+                        <input type="text" name="numero" id="numero" required placeholder="+5512345678900">
+                        <button type="submit" class="btn-add">Adicionar</button>
                     </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Nenhum filho cadastrado ainda.</p>
-    {% endif %}
+                {% else %}
+                    <p class="limite">Limite de filhos atingido para o seu plano.</p>
+                {% endif %}
+                <p class="logout-link"><a href="{{ url_for('logout') }}">Sair</a></p>
+            </section>
+        </main>
+        <footer>
+            <p>&copy; 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+    <script>
+        const numeros = {{ filhos | tojson }};
+        const clickCooldowns = {};
 
-    {% if filhos|length < max_filhos %}
-        <h2>Adicionar Novo Filho</h2>
-        <form method="post" action="{{ url_for('adicionar_filho') }}">
-            <label for="numero">Número do WhatsApp (com DDI, ex.: +551234567890):</label><br>
-            <input type="text" name="numero" required><br><br>
-            <button type="submit">Adicionar</button>
-        </form>
-    {% else %}
-        <p class="limite">Limite de filhos atingido para o seu plano.</p>
-    {% endif %}
-
-    {% if mensagem %}
-        <p class="mensagem">{{ mensagem }}</p>
-    {% endif %}
-
-    {% if erro %}
-        <p class="erro">{{ erro }}</p>
-    {% endif %}
-
-    <hr>
-    <p><a href="{{ url_for('logout') }}">Sair</a></p>
-</div>
-
-<script>
-    const numeros = {{ filhos | tojson }};
-
-    function atualizarStatus() {
-        const lista = numeros.map(f => f.numero_whatsapp);
-        fetch("/status-conexao", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ numeros: lista })
-        })
-        .then(r => r.json())
-        .then(statuses => {
-            for (const [numero, status] of Object.entries(statuses)) {
-                const el = document.getElementById(`status-${numero}`);
-                if (el) el.innerText = status ? "Conectado" : "Desconectado";
-            }
-        });
-    }
-
-    function conectar(numero) {
-        fetch(`/solicitar-qrcode/${numero}`)
+        function atualizarStatus() {
+            const lista = numeros.map(f => f.numero_whatsapp);
+            fetch("/status-conexao", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ numeros: lista })
+            })
             .then(r => r.json())
-            .then(data => {
-                const el = document.getElementById(`qrcode-${numero}`);
-                if (el && data.qrcode) {
-                    el.innerHTML = `<img src="${data.qrcode}" width="200">`;
-                } else {
-                    el.innerText = "Erro ao gerar QR code.";
+            .then(statuses => {
+                for (const [numero, status] of Object.entries(statuses)) {
+                    const elStatus = document.getElementById(`status-${numero}`);
+                    const elConectar = document.getElementById(`btn-conectar-${numero}`);
+                    const elDesconectar = document.getElementById(`btn-desconectar-${numero}`);
+                    const elQrcode = document.getElementById(`qrcode-${numero}`);
+                    if (elStatus) {
+                        elStatus.innerText = status ? "Conectado" : "Desconectado";
+                    }
+                    if (status) {
+                        if (elConectar) elConectar.style.display = "none";
+                        if (elDesconectar) elDesconectar.style.display = "inline-block";
+                        if (elQrcode) elQrcode.innerHTML = "";
+                    } else {
+                        if (elConectar) elConectar.style.display = "inline-block";
+                        if (elDesconectar) elDesconectar.style.display = "none";
+                        if (elQrcode && elQrcode.innerHTML) {
+                            conectar(numero); // Atualizar QR code se já exibido
+                        }
+                    }
                 }
             });
-    }
+        }
 
-    setInterval(atualizarStatus, 60000);
-    atualizarStatus();
-</script>
+        function conectar(numero) {
+            if (clickCooldowns[numero] && Date.now() - clickCooldowns[numero] < 5000) {
+                return; // Impede duplo clique
+            }
+            clickCooldowns[numero] = Date.now();
+            const btn = document.getElementById(`btn-conectar-${numero}`);
+            if (btn) {
+                btn.disabled = true;
+                setTimeout(() => { btn.disabled = false; }, 5000);
+            }
+            fetch(`/solicitar-qrcode/${numero}`)
+                .then(r => r.json())
+                .then(data => {
+                    const el = document.getElementById(`qrcode-${numero}`);
+                    if (el && data.qrcode) {
+                        el.innerHTML = `<img src="${data.qrcode}" width="200">`;
+                    } else {
+                        el.innerText = "Erro ao gerar QR code.";
+                    }
+                });
+        }
+
+        function desconectar(numero) {
+            if (clickCooldowns[numero] && Date.now() - clickCooldowns[numero] < 5000) {
+                return; // Impede duplo clique
+            }
+            clickCooldowns[numero] = Date.now();
+            const btn = document.getElementById(`btn-desconectar-${numero}`);
+            if (btn) {
+                btn.disabled = true;
+                setTimeout(() => { btn.disabled = false; }, 5000);
+            }
+            fetch(`/desconectar/${numero}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === "sessão desconectada com sucesso") {
+                        const elStatus = document.getElementById(`status-${numero}`);
+                        const elConectar = document.getElementById(`btn-conectar-${numero}`);
+                        const elDesconectar = document.getElementById(`btn-desconectar-${numero}`);
+                        const elQrcode = document.getElementById(`qrcode-${numero}`);
+                        if (elStatus) elStatus.innerText = "Desconectado";
+                        if (elConectar) elConectar.style.display = "inline-block";
+                        if (elDesconectar) elDesconectar.style.display = "none";
+                        if (elQrcode) elQrcode.innerHTML = "";
+                    } else {
+                        alert("Erro ao desconectar: " + data.erro);
+                    }
+                });
+        }
+
+        setInterval(atualizarStatus, 5000); // Atualiza a cada 5 segundos
+        atualizarStatus();
+    </script>
 </body>
 </html>
