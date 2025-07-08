@@ -10,7 +10,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>Espia WhatsApp</h1>
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Espia WhatsApp" class="logo">
             <p class="slogan">Controle total das conversas com segurança!</p>
         </header>
         <main>
@@ -73,7 +73,9 @@
                 {% else %}
                     <p class="limite">Limite de WhatsApps atingido para o seu plano.</p>
                 {% endif %}
-                <p class="logout-link"><a href="{{ url_for('logout') }}">Sair</a></p>
+                <div class="logout-container">
+                    <p class="logout-link"><a href="{{ url_for('logout') }}">Sair</a></p>
+                </div>
             </section>
         </main>
         <footer>
@@ -108,7 +110,6 @@
                     } else {
                         if (elConectar) elConectar.style.display = "inline-block";
                         if (elDesconectar) elDesconectar.style.display = "none";
-                        // Não solicita novo QR code aqui
                     }
                 }
             });
@@ -161,8 +162,6 @@
                     if (elConectar) elConectar.style.display = "inline-block";
                     if (elDesconectar) elDesconectar.style.display = "none";
                     if (elQrcode) elQrcode.innerHTML = "";
-                } else {
-                    
                 }
             });
         }
