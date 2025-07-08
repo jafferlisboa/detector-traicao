@@ -40,12 +40,12 @@ header {
 }
 
 .login-section, .como-funciona, .video-section {
-    background: rgba(255, 255, 255, 0.95);
+    background: #e0e0e0;
     padding: 40px;
     border-radius: 15px;
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
     margin-bottom: 40px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
 }
 
 h2 {
@@ -79,13 +79,14 @@ p {
 .login-form, .forgot-password-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 label {
     font-size: 1.1em;
     color: #555;
     text-align: left;
+    margin-bottom: 8px;
 }
 
 input {
@@ -138,13 +139,17 @@ input:focus {
 
 .publicitario {
     font-size: 1.2em;
-    color: #1e3c72;
+    color: #555;
     font-weight: bold;
     margin-bottom: 25px;
 }
 
+.publicitario .highlight {
+    color: #d32f2f;
+}
+
 .forgot-password-link {
-    margin-top: 12px;
+    margin-top: 8px;
     font-size: 1.1em;
 }
 
@@ -215,13 +220,13 @@ input:focus {
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.95);
+    background: #e0e0e0;
     padding: 30px;
     border-radius: 15px;
     width: 90%;
     max-width: 500px;
     position: relative;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
 }
 
 .close {
