@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="light">
     <title>Espia WhatsApp - Monitore com Segurança</title>
-    <style>* {
+    <style>
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -223,7 +224,7 @@ input:focus {
 }
 
 .modal {
-    display: none !important;
+    display: none;
     position: fixed !important;
     top: 50% !important;
     left: 50% !important;
@@ -239,6 +240,8 @@ input:focus {
 .modal-content {
     background: #e0e0e0;
     padding: 30px;
+    left: calc(22.5% - 30px);
+    top: 100px;
     border-radius: 15px;
     width: 90%;
     max-width: 500px;
@@ -262,16 +265,17 @@ footer {
 }
 
 @media (max-width: 768px) {
-    body { background: #fbf7f4 !important; }
-    .container { max-width: 98%; padding: 20px; background: #fbf7f4; }
+    body { background-color: #fbf7f4 !important; }
+    .container { max-width: 98%; padding: 20px; background-color: #fbf7f4; }
     .logo-container { padding: 10px; }
     h2 { font-size: 1.7em; }
     .login-section, .como-funciona, .video-section { padding: 30px; }
     input, .btn-login, .btn-recover { font-size: 1em; padding: 12px; }
     .btn-register { font-size: 1.2em; padding: 15px 25px; }
     .step img { width: 100px; }
-    .modal-content { padding: 20px; }
-}</style>
+    .modal-content { padding: 20px; left: 30px;}
+}
+    </style>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
@@ -290,7 +294,7 @@ footer {
                     <p class="erro">{{ erro }}</p>
                 {% endif %}
                 <div class="cta-buttons">
-                    <button class="btn-login" onclick="showLogin()">Entrar</button>
+                    <button class="btn-login" id="login-btn">Entrar</button>
                     <a href="{{ url_for('register') }}" class="btn-register">Cadastre-se Agora</a>
                 </div>
                 <p class="publicitario"><span class="highlight">Teste gratuitamente por 2 dias!</span> Monitore em minutos, proteja quem você ama com total discrição!</p>
@@ -324,7 +328,7 @@ footer {
     </div>
     <div id="login-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeLogin()">×</span>
+            <span class="close">×</span>
             <h2>Entrar</h2>
             <form method="post" action="{{ url_for('login') }}" class="login-form">
                 <label for="username">Seu número de WhatsApp (com DDD):</label>
@@ -332,13 +336,13 @@ footer {
                 <label for="password">Senha:</label>
                 <input type="password" name="password" id="password" required placeholder="Digite sua senha">
                 <button type="submit" class="btn-login">Entrar</button>
-                <p class="forgot-password-link"><a href="#" onclick="showForgotPassword()">Esqueci minha senha</a></p>
+                <p class="forgot-password-link"><a href="#" id="forgot-password-link">Esqueci minha senha</a></p>
             </form>
         </div>
     </div>
     <div id="forgot-password-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeForgotPassword()">×</span>
+            <span class="close">×</span>
             <h2>Recuperar Senha</h2>
             <form method="post" action="{{ url_for('forgot_password') }}" class="forgot-password-form">
                 <label for="whatsapp_pai">Seu número de WhatsApp (com DDD):</label>
@@ -351,11 +355,25 @@ footer {
         document.addEventListener('DOMContentLoaded', () => {
             const loginModal = document.getElementById('login-modal');
             const forgotPasswordModal = document.getElementById('forgot-password-modal');
-            loginModal.style.display = 'none';
-            forgotPasswordModal.style.display = 'none';
+            const loginButton = document.getElementById('login-btn');
+            const forgotPasswordLink = document.getElementById('forgot-password-link');
+            const closeButtons = document.querySelectorAll('.close');
 
-            // Adiciona evento de clique para todos os elementos .close
-            document.querySelectorAll('.close').forEach(closeBtn => {
+            // Evento para o botão "Entrar"
+            loginButton.addEventListener('click', () => {
+                loginModal.style.display = 'block';
+                forgotPasswordModal.style.display = 'none';
+            });
+
+            // Evento para o link "Esqueci minha senha"
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginModal.style.display = 'none';
+                forgotPasswordModal.style.display = 'block';
+            });
+
+            // Evento para os botões de fechar
+            closeButtons.forEach(closeBtn => {
                 closeBtn.addEventListener('click', () => {
                     loginModal.style.display = 'none';
                     forgotPasswordModal.style.display = 'none';
@@ -363,25 +381,7 @@ footer {
             });
         });
 
-        function showLogin() {
-            const loginModal = document.getElementById('login-modal');
-            const forgotPasswordModal = document.getElementById('forgot-password-modal');
-            loginModal.style.display = 'block';
-            forgotPasswordModal.style.display = 'none';
-        }
-
-        function closeLogin() {
-            document.getElementById('login-modal').style.display = 'none';
-        }
-
-        function showForgotPassword() {
-            document.getElementById('login-modal').style.display = 'none';
-            document.getElementById('forgot-password-modal').style.display = 'block';
-        }
-
-        function closeForgotPassword() {
-            document.getElementById('forgot-password-modal').style.display = 'none';
-        }
+        
     </script>
 </body>
 </html>
