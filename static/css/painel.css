@@ -40,11 +40,11 @@ header {
 }
 
 .painel-section {
-    background: rgba(255, 255, 255, 0.95);
+    background: #e0e0e0;
     padding: 40px;
     border-radius: 15px;
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
 }
 
 h2, h3 {
@@ -151,7 +151,7 @@ h2, h3 {
 
 .qrcode-area img {
     margin-top: 15px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 8px;
     filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
 }
@@ -208,7 +208,7 @@ h2, h3 {
 .add-filho-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     margin-top: 25px;
 }
 
@@ -216,6 +216,7 @@ label {
     font-size: 1.1em;
     color: #555;
     text-align: left;
+    margin-bottom: 8px;
 }
 
 input {
