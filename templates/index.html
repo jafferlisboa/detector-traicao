@@ -56,7 +56,7 @@
             <p>© 2025 Espia WhatsApp. Todos os direitos reservados.</p>
         </footer>
     </div>
-    <div id="login-modal" class="modal" style="display: none;">
+    <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeLogin()">×</span>
             <h2>Entrar</h2>
@@ -70,7 +70,7 @@
             </form>
         </div>
     </div>
-    <div id="forgot-password-modal" class="modal" style="display: none;">
+    <div id="forgot-password-modal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeForgotPassword()">×</span>
             <h2>Recuperar Senha</h2>
@@ -82,16 +82,37 @@
         </div>
     </div>
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginModal = document.getElementById('login-modal');
+            const forgotPasswordModal = document.getElementById('forgot-password-modal');
+            loginModal.style.display = 'none';
+            forgotPasswordModal.style.display = 'none';
+
+            // Adiciona evento de clique para todos os elementos .close
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', () => {
+                    loginModal.style.display = 'none';
+                    forgotPasswordModal.style.display = 'none';
+                });
+            });
+        });
+
         function showLogin() {
-            document.getElementById('login-modal').style.display = 'block';
+            const loginModal = document.getElementById('login-modal');
+            const forgotPasswordModal = document.getElementById('forgot-password-modal');
+            loginModal.style.display = 'block';
+            forgotPasswordModal.style.display = 'none';
         }
+
         function closeLogin() {
             document.getElementById('login-modal').style.display = 'none';
         }
+
         function showForgotPassword() {
             document.getElementById('login-modal').style.display = 'none';
             document.getElementById('forgot-password-modal').style.display = 'block';
         }
+
         function closeForgotPassword() {
             document.getElementById('forgot-password-modal').style.display = 'none';
         }
