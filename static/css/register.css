@@ -40,11 +40,11 @@ header {
 }
 
 .register-section {
-    background: rgba(255, 255, 255, 0.95);
+    background: #e0e0e0;
     padding: 40px;
     border-radius: 15px;
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
 }
 
 h2 {
@@ -77,13 +77,14 @@ p {
 .register-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 label {
     font-size: 1.1em;
     color: #555;
     text-align: left;
+    margin-bottom: 8px;
 }
 
 input {
