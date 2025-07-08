@@ -8,7 +8,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    background: linear-gradient(135deg, #0d1a3b, #1a2e5a);
     color: #fff;
     min-height: 100vh;
     display: flex;
@@ -17,151 +17,199 @@ body {
 }
 
 .container {
-    max-width: 500px;
-    width: 90%;
-    padding: 20px;
+    max-width: 700px;
+    width: 95%;
+    padding: 30px;
     text-align: center;
 }
 
 header {
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
-h1 {
-    font-size: 2.5em;
-    color: #ffd700;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+.logo {
+    max-width: 200px;
+    height: auto;
 }
 
 .slogan {
-    font-size: 1.2em;
+    font-size: 1.3em;
     color: #e0e0e0;
-    margin-top: 10px;
+    margin-top: 15px;
+    font-style: italic;
 }
 
-.login-section {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    margin-bottom: 30px;
-}
-
-.como-funciona {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+.login-section, .como-funciona, .video-section {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+    margin-bottom: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 h2 {
-    font-size: 1.8em;
-    margin-bottom: 15px;
+    font-size: 2em;
+    margin-bottom: 20px;
     color: #ffd700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 p {
-    font-size: 1em;
-    margin-bottom: 20px;
+    font-size: 1.1em;
+    margin-bottom: 25px;
     color: #e0e0e0;
 }
 
 .erro {
     color: #ff4d4d;
-    background: rgba(255, 0, 0, 0.2);
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
+    background: rgba(255, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
 
-.login-form {
+.login-form, .forgot-password-form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
 }
 
 label {
-    font-size: 1em;
+    font-size: 1.1em;
     color: #e0e0e0;
     text-align: left;
 }
 
 input {
-    padding: 12px;
-    font-size: 1em;
+    padding: 15px;
+    font-size: 1.1em;
     border: none;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
     color: #333;
     outline: none;
-    transition: box-shadow 0.3s;
+    transition: box-shadow 0.3s, transform 0.2s;
 }
 
 input:focus {
-    box-shadow: 0 0 8px #ffd700;
+    box-shadow: 0 0 10px #ffd700;
+    transform: scale(1.02);
 }
 
-.btn-login {
-    padding: 12px;
-    font-size: 1.1em;
+.btn-login, .btn-recover {
+    padding: 15px;
+    font-size: 1.2em;
     background: #ffd700;
     color: #1e3c72;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: background 0.3s, transform 0.2s;
 }
 
-.btn-login:hover {
+.btn-login:hover, .btn-recover:hover {
     background: #e6c200;
+    transform: scale(1.05);
 }
 
-.register-link {
-    margin-top: 20px;
-    font-size: 1em;
+.forgot-password-link, .register-link {
+    margin-top: 25px;
+    font-size: 1.1em;
 }
 
-.register-link a {
+.forgot-password-link a, .register-link a {
     color: #ffd700;
     text-decoration: none;
     font-weight: bold;
+    transition: color 0.3s;
 }
 
-.register-link a:hover {
+.forgot-password-link a:hover, .register-link a:hover {
+    color: #e6c200;
     text-decoration: underline;
 }
 
 .como-funciona .steps {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 30px;
 }
 
 .step img {
-    width: 100px;
-    margin-bottom: 10px;
+    width: 120px;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
 }
 
 .step p {
-    font-size: 1.1em;
+    font-size: 1.2em;
 }
 
 .step p strong {
     color: #ffd700;
-    font-size: 1.2em;
+    font-size: 1.3em;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+}
+
+.video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5em;
+    color: #ffd700;
+    cursor: pointer;
 }
 
 footer {
-    margin-top: 30px;
-    font-size: 0.9em;
+    margin-top: 40px;
+    font-size: 1em;
     color: #e0e0e0;
 }
 
-@media (max-width: 600px) {
-    h1 { font-size: 2em; }
-    .slogan { font-size: 1em; }
-    h2 { font-size: 1.5em; }
-    .login-section, .como-funciona { padding: 20px; }
-    input, .btn-login { font-size: 0.9em; padding: 10px; }
-    .step img { width: 80px; }
+@media (max-width: 768px) {
+    .container { max-width: 95%; padding: 20px; }
+    h2 { font-size: 1.7em; }
+    .login-section, .como-funciona, .video-section { padding: 30px; }
+    input, .btn-login, .btn-recover { font-size: 1em; padding: 12px; }
+    .step img { width: 100px; }
+    .modal-content { padding: 20px; }
 }
