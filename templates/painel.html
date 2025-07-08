@@ -2,7 +2,8 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><meta name="color-scheme" content="light">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light">
     <title>Painel - Espia WhatsApp</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/painel.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
@@ -10,7 +11,9 @@
 <body>
     <div class="container">
         <header>
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Espia WhatsApp" class="logo">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Espia WhatsApp" class="logo">
+            </div>
             <p class="slogan">Controle total das conversas com segurança!</p>
         </header>
         <main>
