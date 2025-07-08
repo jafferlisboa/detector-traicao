@@ -8,7 +8,7 @@
 }
 
 body {
-    background: #fbf7f4;
+    background: #fbf7f4 !important;
     color: #333;
     min-height: 100vh;
     display: flex;
@@ -27,6 +27,15 @@ body {
 header {
     margin-bottom: 40px;
     background: #fbf7f4;
+}
+
+.logo-container {
+    background: #fbf7f4;
+    padding: 15px;
+    border-radius: 10px;
+    border-bottom: 2px solid #1e3c72;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: inline-block;
 }
 
 .logo {
@@ -208,17 +217,17 @@ input:focus {
 }
 
 .modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 1000 !important;
 }
 
 .modal-content {
@@ -249,6 +258,7 @@ footer {
 @media (max-width: 768px) {
     body { background: #fbf7f4 !important; }
     .container { max-width: 98%; padding: 20px; background: #fbf7f4; }
+    .logo-container { padding: 10px; }
     h2 { font-size: 1.7em; }
     .login-section, .como-funciona, .video-section { padding: 30px; }
     input, .btn-login, .btn-recover { font-size: 1em; padding: 12px; }
