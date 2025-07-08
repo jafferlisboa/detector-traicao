@@ -8,8 +8,8 @@
 }
 
 body {
-    background: linear-gradient(135deg, #0d1a3b, #1a2e5a);
-    color: #fff;
+    background: #fbf7f4;
+    color: #333;
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -18,7 +18,7 @@ body {
 
 .container {
     max-width: 1000px;
-    width: 95%;
+    width: 98%;
     padding: 30px;
     text-align: center;
 }
@@ -28,30 +28,30 @@ header {
 }
 
 .logo {
-    max-width: 200px;
+    max-width: 250px;
     height: auto;
 }
 
 .slogan {
     font-size: 1.3em;
-    color: #e0e0e0;
+    color: #555;
     margin-top: 15px;
     font-style: italic;
 }
 
 .painel-section {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.95);
     padding: 40px;
     border-radius: 15px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
 }
 
 h2, h3 {
     font-size: 2em;
     margin-bottom: 20px;
-    color: #ffd700;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    color: #1e3c72;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .info-user {
@@ -64,11 +64,11 @@ h2, h3 {
 
 .info-user p {
     font-size: 1.1em;
-    color: #e0e0e0;
+    color: #555;
 }
 
 .comprar-agora {
-    background: rgba(255, 215, 0, 0.3);
+    background: rgba(255, 215, 0, 0.2);
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 25px;
@@ -92,24 +92,24 @@ h2, h3 {
 
 .upgrade-discreto {
     font-size: 1em;
-    color: #e0e0e0;
+    color: #555;
     margin-top: 15px;
 }
 
 .upgrade-discreto a {
-    color: #ffd700;
+    color: #1e3c72;
     text-decoration: none;
     transition: color 0.3s;
 }
 
 .upgrade-discreto a:hover {
-    color: #e6c200;
+    color: #0d1a3b;
     text-decoration: underline;
 }
 
 .mensagem-confirmacao {
-    color: #ffd700;
-    background: rgba(255, 215, 0, 0.3);
+    color: #1e3c72;
+    background: rgba(255, 215, 0, 0.2);
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -117,7 +117,7 @@ h2, h3 {
 
 .erro {
     color: #ff4d4d;
-    background: rgba(255, 0, 0, 0.3);
+    background: rgba(255, 0, 0, 0.2);
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -133,7 +133,7 @@ h2, h3 {
     align-items: center;
     gap: 15px;
     padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.8);
     border-radius: 8px;
     margin-bottom: 15px;
     flex-wrap: wrap;
@@ -146,14 +146,14 @@ h2, h3 {
 
 .status {
     font-weight: bold;
-    color: #ffd700;
+    color: #1e3c72;
 }
 
 .qrcode-area img {
     margin-top: 15px;
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
 }
 
 .btn-conectar, .btn-desconectar, .btn-excluir, .btn-add {
@@ -208,13 +208,13 @@ h2, h3 {
 .add-filho-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
     margin-top: 25px;
 }
 
 label {
     font-size: 1.1em;
-    color: #e0e0e0;
+    color: #555;
     text-align: left;
 }
 
@@ -223,14 +223,14 @@ input {
     font-size: 1.1em;
     border: none;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.95);
+    background: #f5f5f5;
     color: #333;
     outline: none;
     transition: box-shadow 0.3s, transform 0.2s;
 }
 
 input:focus {
-    box-shadow: 0 0 10px #ffd700;
+    box-shadow: 0 0 10px #1e3c72;
     transform: scale(1.02);
 }
 
@@ -245,25 +245,25 @@ input:focus {
 }
 
 .logout-link a {
-    color: #ffd700;
+    color: #1e3c72;
     text-decoration: none;
     font-weight: bold;
     transition: color 0.3s;
 }
 
 .logout-link a:hover {
-    color: #e6c200;
+    color: #0d1a3b;
     text-decoration: underline;
 }
 
 footer {
     margin-top: 40px;
     font-size: 1em;
-    color: #e0e0e0;
+    color: #555;
 }
 
 @media (max-width: 768px) {
-    .container { max-width: 95%; padding: 20px; }
+    .container { max-width: 98%; padding: 20px; }
     h2, h3 { font-size: 1.7em; }
     .painel-section { padding: 30px; }
     .info-user { flex-direction: column; gap: 15px; }
