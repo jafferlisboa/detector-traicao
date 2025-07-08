@@ -21,10 +21,12 @@ body {
     width: 98%;
     padding: 30px;
     text-align: center;
+    background: #fbf7f4;
 }
 
 header {
     margin-bottom: 40px;
+    background: #fbf7f4;
 }
 
 .logo {
@@ -264,7 +266,8 @@ footer {
 }
 
 @media (max-width: 768px) {
-    .container { max-width: 98%; padding: 20px; }
+    body { background: #fbf7f4 !important; }
+    .container { max-width: 98%; padding: 20px; background: #fbf7f4; }
     h2, h3 { font-size: 1.7em; }
     .painel-section { padding: 30px; }
     .info-user { flex-direction: column; gap: 15px; }
