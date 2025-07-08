@@ -5,7 +5,293 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="light">
     <title>Painel - Espia WhatsApp</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/painel.css') }}">
+    <style>* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+body {
+    background: #fbf7f4 !important;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    max-width: 1000px;
+    width: 98%;
+    padding: 30px;
+    text-align: center;
+    background: #fbf7f4;
+}
+
+header {
+    margin-bottom: 40px;
+    background: #fbf7f4;
+}
+
+.logo-container {
+    background: #fbf7f4;
+    padding: 15px;
+    border-radius: 10px;
+    border-bottom: 2px solid #1e3c72;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+}
+
+.logo {
+    max-width: 250px;
+    height: auto;
+}
+
+.slogan {
+    font-size: 1.3em;
+    color: #555;
+    margin-top: 15px;
+    font-style: italic;
+}
+
+.painel-section {
+    background: #e0e0e0;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+}
+
+h2, h3 {
+    font-size: 2em;
+    margin-bottom: 20px;
+    color: #1e3c72;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.info-user {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.info-user p {
+    font-size: 1.1em;
+    color: #555;
+}
+
+.comprar-agora {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.btn-plano {
+    display: inline-block;
+    padding: 12px 25px;
+    margin: 10px;
+    background: #ffd700;
+    color: #1e3c72;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.btn-plano:hover {
+    background: #e6c200;
+    transform: scale(1.05);
+}
+
+.upgrade-discreto {
+    font-size: 1em;
+    color: #555;
+    margin-top: 15px;
+}
+
+.upgrade-discreto a {
+    color: #1e3c72;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.upgrade-discreto a:hover {
+    color: #0d1a3b;
+    text-decoration: underline;
+}
+
+.mensagem-confirmacao {
+    color: #1e3c72;
+    background: rgba(255, 215, 0, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.erro {
+    color: #ff4d4d;
+    background: rgba(255, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filho-lista {
+    list-style: none;
+    margin-bottom: 25px;
+}
+
+.filho-lista li {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    transition: transform 0.2s;
+}
+
+.filho-lista li:hover {
+    transform: scale(1.02);
+}
+
+.status {
+    font-weight: bold;
+    color: #1e3c72;
+}
+
+.qrcode-area img {
+    margin-top: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+}
+
+.btn-conectar, .btn-desconectar, .btn-excluir, .btn-add {
+    padding: 10px 20px;
+    font-size: 1em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.btn-conectar {
+    background: #28a745;
+    color: #fff;
+}
+
+.btn-conectar:hover {
+    background: #218838;
+    transform: scale(1.05);
+}
+
+.btn-desconectar {
+    background: #dc3545;
+    color: #fff;
+}
+
+.btn-desconectar:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+.btn-excluir {
+    background: #ff4d4d;
+    color: #fff;
+}
+
+.btn-excluir:hover {
+    background: #e63946;
+    transform: scale(1.05);
+}
+
+.btn-add {
+    background: #ffd700;
+    color: #1e3c72;
+}
+
+.btn-add:hover {
+    background: #e6c200;
+    transform: scale(1.05);
+}
+
+.add-filho-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 25px;
+}
+
+label {
+    font-size: 1.1em;
+    color: #555;
+    text-align: left;
+    margin-bottom: 8px;
+}
+
+input {
+    padding: 15px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 8px;
+    background: #f5f5f5;
+    color: #333;
+    outline: none;
+    transition: box-shadow 0.3s, transform 0.2s;
+}
+
+input:focus {
+    box-shadow: 0 0 10px #1e3c72;
+    transform: scale(1.02);
+}
+
+.limite {
+    color: #ff4d4d;
+    margin-top: 25px;
+}
+
+.logout-container {
+    text-align: right;
+    margin-top: 30px;
+}
+
+.logout-link a {
+    color: #1e3c72;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.logout-link a:hover {
+    color: #0d1a3b;
+    text-decoration: underline;
+}
+
+footer {
+    margin-top: 40px;
+    font-size: 1em;
+    color: #555;
+}
+
+@media (max-width: 768px) {
+    body { background: #fbf7f4 !important; }
+    .container { max-width: 98%; padding: 20px; background: #fbf7f4; }
+    .logo-container { padding: 10px; }
+    h2, h3 { font-size: 1.7em; }
+    .painel-section { padding: 30px; }
+    .info-user { flex-direction: column; gap: 15px; }
+    .filho-lista li { flex-direction: column; align-items: flex-start; }
+    input, .btn-conectar, .btn-desconectar, .btn-excluir, .btn-add { font-size: 1em; padding: 12px; }
+    .btn-plano { font-size: 1em; padding: 10px 20px; }
+}</style>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
