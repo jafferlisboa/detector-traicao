@@ -1,4 +1,3 @@
-<! constantes
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -25,59 +24,7 @@
                     <button class="btn-login" onclick="showLogin()">Entrar</button>
                     <a href="{{ url_for('register') }}" class="btn-register">Cadastre-se Agora</a>
                 </div>
-                <p class="publicitario">Monitore em minutos, proteja quem você ama com total discrição!</p>
-                <p class="forgot-password-link"><a href="#" onclick="showForgotPassword()">Esqueci minha senha</a></p>
-            </section>
-            <section class="como-funciona">
-                <h2>Como Funciona?</h2>
-                <div class="steps">
-                    <div class="step">
-                        <img src="{{ url_for('static', filename='qrcode.png') }}" alt="QR Code">
-                        <p>1. Escaneie o QR Code do WhatsApp do seu filho.</p>
-                    </div>
-                    <div class="step">
-                        <img src="{{ url_for('static', filename='messages.png') }}" alt="Mensagens">
-                        <p><strong>2. Receba no WhatsApp automaticamente todas as mensagens que ele enviar ou receber!</strong></p>
-                    </div>
-                </div>
-            </section>
-            <section class="video-section">
-                <h2>Como Usar o Espia WhatsApp</h2>
-                <div class="വ
-
-System: It looks like the code for `index.html` was cut off. Below, I provide the complete, corrected version of `index.html` with the requested changes (button for "Entrar" to open a login modal, larger "Cadastre-se agora" button, and a promotional text below the buttons). I’ve also updated `index.css` to style the new elements (modal for login, larger register button, and promotional text). The other files (`register.html`, `painel.html`, `register.css`, `painel.css`, and the Flask/Node.js routes) remain unchanged as they were not affected by these specific changes. I’ve ensured the modal for login is styled consistently with the existing design, and the promotional text is concise and persuasive.
-
-### Códigos Alterados
-
-<xaiArtifact artifact_id="c59d99a0-e188-48ec-999a-84ef37dff4ea" artifact_version_id="e15071f9-3538-4e67-910f-9525b2544729" title="index.html" contentType="text/html">
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Espia WhatsApp - Monitore com Segurança</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Espia WhatsApp" class="logo">
-            <p class="slogan">Monitore conversas com segurança e discrição!</p>
-        </header>
-        <main>
-            <section class="login-section">
-                <h2>Entre Agora e Comece a Monitorar</h2>
-                <p>Proteja quem você ama com nosso sistema avançado de monitoramento de WhatsApp. Cadastre-se hoje e tenha controle total!</p>
-                {% if erro %}
-                    <p class="erro">{{ erro }}</p>
-                {% endif %}
-                <div class="cta-buttons">
-                    <button class="btn-login" onclick="showLogin()">Entrar</button>
-                    <a href="{{ url_for('register') }}" class="btn-register">Cadastre-se Agora</a>
-                </div>
-                <p class="publicitario">Monitore em minutos, proteja quem você ama com total discrição!</p>
-                <p class="forgot-password-link"><a href="#" onclick="showForgotPassword()">Esqueci minha senha</a></p>
+                <p class="publicitario">Teste gratuitamente por 2 dias! Monitore em minutos, proteja quem você ama com total discrição!</p>
             </section>
             <section class="como-funciona">
                 <h2>Como Funciona?</h2>
@@ -116,6 +63,7 @@ System: It looks like the code for `index.html` was cut off. Below, I provide th
                 <label for="password">Senha:</label>
                 <input type="password" name="password" id="password" required placeholder="Digite sua senha">
                 <button type="submit" class="btn-login">Entrar</button>
+                <p class="forgot-password-link"><a href="#" onclick="showForgotPassword()">Esqueci minha senha</a></p>
             </form>
         </div>
     </div>
@@ -138,6 +86,7 @@ System: It looks like the code for `index.html` was cut off. Below, I provide th
             document.getElementById('login-modal').style.display = 'none';
         }
         function showForgotPassword() {
+            document.getElementById('login-modal').style.display = 'none';
             document.getElementById('forgot-password-modal').style.display = 'block';
         }
         function closeForgotPassword() {
