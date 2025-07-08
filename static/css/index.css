@@ -8,8 +8,8 @@
 }
 
 body {
-    background: linear-gradient(135deg, #0d1a3b, #1a2e5a);
-    color: #fff;
+    background: #fbf7f4;
+    color: #333;
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -18,7 +18,7 @@ body {
 
 .container {
     max-width: 900px;
-    width: 95%;
+    width: 98%;
     padding: 30px;
     text-align: center;
 }
@@ -28,42 +28,42 @@ header {
 }
 
 .logo {
-    max-width: 200px;
+    max-width: 250px;
     height: auto;
 }
 
 .slogan {
     font-size: 1.3em;
-    color: #e0e0e0;
+    color: #555;
     margin-top: 15px;
     font-style: italic;
 }
 
 .login-section, .como-funciona, .video-section {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.95);
     padding: 40px;
     border-radius: 15px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
     margin-bottom: 40px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid #ddd;
 }
 
 h2 {
     font-size: 2em;
     margin-bottom: 20px;
-    color: #ffd700;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    color: #1e3c72;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 p {
     font-size: 1.1em;
     margin-bottom: 25px;
-    color: #e0e0e0;
+    color: #555;
 }
 
 .erro {
     color: #ff4d4d;
-    background: rgba(255, 0, 0, 0.3);
+    background: rgba(255, 0, 0, 0.2);
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -79,12 +79,12 @@ p {
 .login-form, .forgot-password-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
 }
 
 label {
     font-size: 1.1em;
-    color: #e0e0e0;
+    color: #555;
     text-align: left;
 }
 
@@ -93,14 +93,14 @@ input {
     font-size: 1.1em;
     border: none;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.95);
+    background: #f5f5f5;
     color: #333;
     outline: none;
     transition: box-shadow 0.3s, transform 0.2s;
 }
 
 input:focus {
-    box-shadow: 0 0 10px #ffd700;
+    box-shadow: 0 0 10px #1e3c72;
     transform: scale(1.02);
 }
 
@@ -138,28 +138,113 @@ input:focus {
 
 .publicitario {
     font-size: 1.2em;
-    color: #ffd700;
+    color: #1e3c72;
     font-weight: bold;
     margin-bottom: 25px;
 }
 
 .forgot-password-link {
-    margin-top: 25px;
+    margin-top: 12px;
     font-size: 1.1em;
 }
 
 .forgot-password-link a {
-    color: #ffd700;
+    color: #1e3c72;
     text-decoration: none;
     font-weight: bold;
     transition: color 0.3s;
 }
 
 .forgot-password-link a:hover {
-    color: #e6c200;
+    color: #0d1a3b;
     text-decoration: underline;
 }
 
 .como-funciona .steps {
     display: flex;
-    flex-direction
+    flex-direction: column;
+    gap: 30px;
+}
+
+.step img {
+    width: 120px;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+}
+
+.step p {
+    font-size: 1.2em;
+}
+
+.step p strong {
+    color: #1e3c72;
+    font-size: 1.3em;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+}
+
+.video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    border: 1px solid #ddd;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5em;
+    color: #1e3c72;
+    cursor: pointer;
+}
+
+footer {
+    margin-top: 40px;
+    font-size: 1em;
+    color: #555;
+}
+
+@media (max-width: 768px) {
+    .container { max-width: 98%; padding: 20px; }
+    h2 { font-size: 1.7em; }
+    .login-section, .como-funciona, .video-section { padding: 30px; }
+    input, .btn-login, .btn-recover { font-size: 1em; padding: 12px; }
+    .btn-register { font-size: 1.2em; padding: 15px 25px; }
+    .step img { width: 100px; }
+    .modal-content { padding: 20px; }
+}
