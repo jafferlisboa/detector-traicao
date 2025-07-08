@@ -8,7 +8,7 @@
 }
 
 body {
-    background: #fbf7f4;
+    background: #fbf7f4 !important;
     color: #333;
     min-height: 100vh;
     display: flex;
@@ -27,6 +27,15 @@ body {
 header {
     margin-bottom: 40px;
     background: #fbf7f4;
+}
+
+.logo-container {
+    background: #fbf7f4;
+    padding: 15px;
+    border-radius: 10px;
+    border-bottom: 2px solid #1e3c72;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: inline-block;
 }
 
 .logo {
@@ -147,6 +156,7 @@ footer {
 @media (max-width: 768px) {
     body { background: #fbf7f4 !important; }
     .container { max-width: 98%; padding: 20px; background: #fbf7f4; }
+    .logo-container { padding: 10px; }
     h2 { font-size: 1.7em; }
     .register-section { padding: 30px; }
     input, .btn-register { font-size: 1em; padding: 12px; }
