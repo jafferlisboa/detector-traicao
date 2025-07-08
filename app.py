@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import requests
 import re
 from openai import OpenAI
+import random
+import string
 import tempfile
 import os
 from dotenv import load_dotenv
