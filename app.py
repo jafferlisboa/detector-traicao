@@ -116,7 +116,7 @@ def register():
 
         for num in set(numeros_para_confirmacao):
             try:
-                confirmacao_url = f"https://detectordetraicao.digital/confirmar-numero/{num}"
+                confirmacao_url = f"https://detetivewhatsapp.com/confirmar-numero/{num}"
                 mensagem = f"Confirme seu número de WhatsApp clicando no link: {confirmacao_url}"
                 response = requests.post("http://147.93.4.219:3000/enviar-confirmacao", json={
                     "numeros": [num],
