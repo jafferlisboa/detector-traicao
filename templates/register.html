@@ -182,21 +182,21 @@ footer p {color:#ddd}
         </header>
         <main>
             <section class="register-section">
-                <h2>Cadastre-se e Proteja Quem Você Ama</h2>
-                <p>Crie sua conta e comece a monitorar conversas do WhatsApp de forma discreta e segura.</p>
+                <h2>Cadastre-se e proteja quem você ama</h2>
+                <p>Crie sua conta e monitore as conversas de WhatsApp dos seus filhos de forma discreta e segura.</p>
                 {% if erro %}
                     <p class="erro">{{ erro }}</p>
                 {% endif %}
                 <form method="post" class="register-form" onsubmit="return validarSenha()">
-                    <label for="username">Número de WhatsApp (ex.: +5512345678900):</label>
-                    <input type="text" name="username" id="username" required placeholder="+5512345678900">
-                    <label for="whatsapp_pai">Confirme o WhatsApp do Responsável:</label>
-                    <input type="text" name="whatsapp_pai" id="whatsapp_pai" required placeholder="+5512345678900">
+                    <label for="username">Seu número de WhatsApp com DDD:</label>
+                    <input type="text" name="username" id="username" required placeholder="Ex.: 11981000000">
+                    <label for="whatsapp_pai">Confirme seu WhatsApp:</label>
+                    <input type="text" name="whatsapp_pai" id="whatsapp_pai" required placeholder="Ex.: 11981000000">
                     <label for="password">Senha:</label>
                     <input type="password" name="password" id="password" required placeholder="Crie uma senha segura">
                     <label for="confirm_password">Confirme a Senha:</label>
                     <input type="password" name="confirm_password" id="confirm_password" required placeholder="Confirme sua senha">
-                    <p class="senha-requisitos">A senha deve ter pelo menos 8 caracteres, 1 letra maiúscula e 1 número.</p>
+                    <p class="senha-requisitos">A senha deve ter pelo menos 8 caracteres e 1 número.</p>
                     <button type="submit" class="btn-register">Cadastrar</button>
                 </form>
                 <p class="login-link">Já tem conta? <a href="{{ url_for('login') }}">Faça login</a></p>
