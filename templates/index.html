@@ -106,7 +106,8 @@ label {
     font-size: 1.1em;
     color: #555;
     text-align: left;
-    margin-bottom: 8px;
+    margin-bottom: 0px;
+margin-top:10px
 }
 
 input {
@@ -286,12 +287,12 @@ footer p {color:#ddd}
             <div class="logo-container">
                 <img src="/static/logo3.png" alt="Logo Detetive WhatsApp" class="logo">
             </div>
-            <p class="slogan">Monitore as conversas do seu filho com segurança e discrição!</p>
+            <p class="slogan">Monitore as conversas dos seus filhos com segurança e discrição!</p>
         </header>
         <main>
             <section class="login-section">
                 <h2>Entre agora e comece a monitorar</h2>
-                <p>Proteja quem você ama com nosso sistema avançado de monitoramento de WhatsApp. Cadastre-se hoje e tenha controle total!</p>
+                <p>Proteja quem você ama com nosso sistema avançado de monitoramento de WhatsApp. Receba todas as conversas direto no seu WhatsApp!</p>
                 
                 <div class="cta-buttons">
                     <button class="btn-login" id="login-btn">Entrar</button>
@@ -308,12 +309,12 @@ footer p {color:#ddd}
                     </div>
                     <div class="step">
                         <img src="/static/messages.png" alt="Mensagens">
-                        <p><strong>2. Receba no WhatsApp automaticamente todas as mensagens que ele enviar ou receber!</strong></p>
+                        <p><strong>2. Receba no WhatsApp automaticamente todas as mensagens e áudios que ele enviar ou receber!</strong></p>
                     </div>
                 </div>
             </section>
             <section class="video-section">
-                <h2>Como usar o Detetiva WhatsApp?</h2>
+                <h2>Como usar o Detetive WhatsApp?</h2>
                 <div class="video-container">
                     <video controls>
                         <source src="/static/explicativo.mp4" type="video/mp4">
@@ -332,7 +333,7 @@ footer p {color:#ddd}
             <h2>Entrar</h2>
             <form method="post" action="/" class="login-form">
                 <label for="username">Seu número de WhatsApp (com DDD):</label>
-                <input type="text" name="username" id="username" required placeholder="+5512345678900">
+                <input type="text" name="username" id="username" required placeholder="Ex.: 11981000000">
                 <label for="password">Senha:</label>
                 <input type="password" name="password" id="password" required placeholder="Digite sua senha">
                 <button type="submit" class="btn-login">Entrar</button>
@@ -346,7 +347,7 @@ footer p {color:#ddd}
             <h2>Recuperar Senha</h2>
             <form method="post" action="/forgot_password" class="forgot-password-form">
                 <label for="whatsapp_pai">Seu número de WhatsApp (com DDD):</label>
-                <input type="text" name="whatsapp_pai" id="whatsapp_pai" required placeholder="+5512345678900">
+                <input type="text" name="whatsapp_pai" id="whatsapp_pai" required placeholder="Ex.: 11981000000">
                 <button type="submit" class="btn-recover">Enviar Nova Senha</button>
             </form>
         </div>
