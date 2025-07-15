@@ -191,7 +191,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/painel')
+@app.route('/painel', methods=['GET'])
 @login_required
 def painel():
     conn = None
@@ -236,6 +236,10 @@ def painel():
             dias_restantes = max(0, 2 - dias_passados)
             comprar_agora = dias_restantes == 0
 
+        mensagem_compra = None
+        if request.args.get('pago') == 'true':
+            mensagem_compra = "Sua compra foi realizada com sucesso! Em até uma hora seu plano será liberado."
+
         return render_template(
             "painel.html",
             session_id=whatsapp_pai,
@@ -244,12 +248,12 @@ def painel():
             max_filhos=max_filhos,
             mensagem_confirmacao=mensagem_confirmacao,
             dias_restantes=dias_restantes,
-            comprar_agora=comprar_agora
+            comprar_agora=comprar_agora,
+            mensagem_compra=mensagem_compra
         )
     finally:
         if conn:
             conn.close()
-
 @app.route("/excluir-filho/<int:filho_id>", methods=["POST"])
 @login_required
 def excluir_filho(filho_id):
