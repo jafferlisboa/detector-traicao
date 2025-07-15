@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -87,14 +86,13 @@ h2, h3 {
     color: #555;
 }
 
-.comprar-agora {
+.comprar-agora {width:100%;
     background: rgba(255, 215, 0, 0.2);
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 25px;
 }
 .comprar-agora p{color:black;margin-bottom:10px}
-
 .btn-plano {
     display: inline-block;
     padding: 17px 25px;
@@ -296,13 +294,13 @@ footer p{color:#ddd}
     input, .btn-conectar, .btn-desconectar, .btn-excluir, .btn-add { font-size: 1em; padding: 12px; }
     .btn-plano { font-size: 1em; padding: 10px 20px; }
 }</style>
-    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
     <div class="container">
         <header>
             <div class="logo-container">
-                <img src="/static/logo3.png" alt="Logo Detetive WhatsApp" class="logo">
+                <img src="{{ url_for('static', filename='logo3.png') }}" alt="Logo Detetive WhatsApp" class="logo">
             </div>
             <p class="slogan">Controle total das conversas com segurança!</p>
         </header>
@@ -310,34 +308,64 @@ footer p{color:#ddd}
             <section class="painel-section">
                 <h2>Painel de Monitoramento</h2>
                 <div class="info-user">
-                    <p><strong>Usuário:</strong> +5567981062557</p>
-                    <p><strong>Plano:</strong> Gratuito</p>
-                    <p><strong>Limite de WhatsApps:</strong> 1</p>
-                    <p><strong>WhatsApps cadastrados:</strong> 0</p>
-                    
-                        <p><strong>Dias restantes (teste gratuito):</strong> 0</p>
-                    
-                    
+                    <p><strong>Usuário:</strong> {{ session_id }}</p>
+                    <p><strong>Plano:</strong> {{ plano }}</p>
+                    <p><strong>Limite de WhatsApps:</strong> {{ max_filhos }}</p>
+                    <p><strong>WhatsApps cadastrados:</strong> {{ filhos|length }}</p>
+                    {% if dias_restantes is not none %}
+                        <p><strong>Dias restantes (teste gratuito):</strong> {{ dias_restantes }}</p>
+                    {% endif %}
+                    {% if comprar_agora %}
                         <div class="comprar-agora">
                             <p>Seu teste gratuito expirou! Escolha um plano para continuar:</p>
-                            <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497db5aae0197e4eee8990326" class="btn-plano">Plano Pro<br><br>R$ 38,90/mês - 1 celular</a>
-                            <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497e081eb0197e4f713f8015a" class="btn-plano">Plano Premium<br><br>R$ 99,70/mês - 3 celulares</a>
+                            <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497db5aae0197e4eee8990326" class="btn-plano">Plano Pro (R$ 38,90/mês - 1 celular)</a>
+                            <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497e081eb0197e4f713f8015a" class="btn-plano">Plano Premium (R$ 99,70/mês - 3 celulares)</a>
                         </div>
-                    
+                    {% elif plano == "Pro" %}
+                        <p class="upgrade-discreto">
+                            Quer monitorar mais celulares? <a href="https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808497e081eb0197e4f713f8015a">Faça upgrade para o Plano Premium (R$ 99,70/mês - 3 celulares)</a>
+                        </p>
+                    {% endif %}
                 </div>
-                
-                    <p class="mensagem-confirmacao">Por favor, clique no link enviado ao seu WhatsApp para confirmar seu número.</p>
-                
-                
+                {% if mensagem_confirmacao %}
+                    <p class="mensagem-confirmacao">{{ mensagem_confirmacao }}</p>
+                {% endif %}
+                {% if erro %}
+                    <p class="erro">{{ erro }}</p>
+                {% endif %}
                 <h3>WhatsApps Monitorados</h3>
-                
+                {% if filhos %}
+                    <ul class="filho-lista">
+                        {% for filho in filhos %}
+                            <li id="linha-{{ filho.numero_whatsapp }}">
+                                <span>{{ filho.nome_filho }} ({{ filho.numero_whatsapp }})</span>
+                                <span class="status" id="status-{{ filho.numero_whatsapp }}">Verificando...</span>
+                                <button type="button" class="btn-conectar" id="btn-conectar-{{ filho.numero_whatsapp }}" onclick="conectar('{{ filho.numero_whatsapp }}')">Conectar</button>
+                                <button type="button" class="btn-desconectar" id="btn-desconectar-{{ filho.numero_whatsapp }}" onclick="desconectar('{{ filho.numero_whatsapp }}')" style="display: none;">Desconectar</button>
+                                <div class="qrcode-area" id="qrcode-{{ filho.numero_whatsapp }}"></div>
+                                <form method="post" action="{{ url_for('excluir_filho', filho_id=filho.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn-excluir">Excluir</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
                     <p>Nenhum WhatsApp cadastrado ainda.</p>
-                
-                
+                {% endif %}
+                {% if filhos|length < max_filhos and not comprar_agora %}
+                    <h3>Adicionar Novo WhatsApp</h3>
+                    <form method="post" action="{{ url_for('adicionar_filho') }}" class="add-filho-form">
+                        <label for="nome_filho">Nome do Filho:</label>
+                        <input type="text" name="nome_filho" id="nome_filho" required placeholder="Nome do filho">
+                        <label for="numero">Número do WhatsApp (com DDI, ex.: +5512345678900):</label>
+                        <input type="text" name="numero" id="numero" required placeholder="+5512345678900">
+                        <button type="submit" class="btn-add">Adicionar</button>
+                    </form>
+                {% else %}
                     <p class="limite">Limite de WhatsApps atingido para o seu plano.</p>
-                
+                {% endif %}
                 <div class="logout-container">
-                    <p class="logout-link"><a href="/logout">Sair</a></p>
+                    <p class="logout-link"><a href="{{ url_for('logout') }}">Sair</a></p>
                 </div>
             </section>
         </main>
@@ -346,7 +374,7 @@ footer p{color:#ddd}
         </footer>
     </div>
     <script>
-        const numeros = [];
+        const numeros = {{ filhos | tojson }};
         const clickCooldowns = {};
 
         function atualizarStatus() {
