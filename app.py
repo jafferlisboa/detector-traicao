@@ -127,10 +127,15 @@ def register():
             conn = get_db()
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado, data_criacao) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                "INSERT INTO usuarios (username, password, plano, whatsapp_pai, telefones_monitorados, confirmado, data_criacao) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
                 (username, password_hash, 'Gratuito', f"+55{numero_original}", [], False, datetime.now())
             )
+            user_id = cur.fetchone()[0]
             conn.commit()
+
+            # Logar o usuário automaticamente
+            user = User(user_id, username, password_hash)
+            login_user(user)
         except psycopg2.IntegrityError:
             return render_template('register.html', erro="Usuário já existe.")
         finally:
@@ -150,7 +155,7 @@ def register():
             except Exception as e:
                 print(f"Erro ao enviar mensagem de confirmação para {num}: {str(e)}")
 
-        return redirect(url_for('login'))
+        return redirect(url_for('painel'))
     return render_template('register.html')
 
 @app.route('/confirmar-numero/<numero>', methods=['GET'])
