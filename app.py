@@ -95,9 +95,8 @@ def register():
         # Validar senha
         if password != confirm_password:
             return render_template('register.html', erro="As senhas não coincidem.")
-        if not re.match(r'^(?=(?:.*(.))(?!.*\1).{7,})[a-z\d]{8,}$', password) or not re.search(r'\d', password):
-            return render_template('register.html', erro="A senha deve ter pelo menos 8 caracteres e 1 número.")
-
+        if len(password) < 8 or not re.search(r'\d', password):
+            return render_template('register.html', erro="A senha deve ter pelo menos 8 caracteres e conter pelo menos 1 número.")
         password_hash = generate_password_hash(password)
         numero = whatsapp_pai
         if numero.startswith('+55'):
