@@ -1,10 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="light">
-    <title>Espia WhatsApp - Monitore com Segurança</title>
+    <title>Detetive WhatsApp - Monitore com Segurança</title>
     <style>
 * {
     margin: 0;
@@ -53,16 +54,16 @@ header {
 
 .slogan {
     font-size: 1.3em;
-    color: #555;
+    color: #fff;
     margin-top: 15px;
     font-style: italic;
 }
 
 .login-section, .como-funciona, .video-section {
-    background: rgba(0,0,0,0);
+    background: #fff;
     padding: 40px;
     border-radius: 15px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 35px rgba(0, 0, 0, 0.6);
     margin-bottom: 40px;
     border: 1px solid #ccc;
 }
@@ -191,7 +192,7 @@ input:focus {
 }
 
 .step img {
-    width: 120px;
+    width: 160px;
     margin-bottom: 15px;
     filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
 }
@@ -262,8 +263,8 @@ input:focus {
 footer {
     margin-top: 40px;
     font-size: 1em;
-    color: #555;
 }
+footer p {color:#ddd}
 
 @media (max-width: 768px) {
     body { background:#0d243b !important; background-color:#0d243b !important; }
@@ -273,30 +274,28 @@ footer {
     .login-section, .como-funciona, .video-section { padding: 30px; }
     input, .btn-login, .btn-recover { font-size: 1em; padding: 12px; }
     .btn-register { font-size: 1.2em; padding: 15px 25px; }
-    .step img { width: 100px; }
+    .step img { width: 120px; }
     .modal-content { padding: 20px; left: 15px;}
 }
     </style>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 <body>
     <div class="container">
         <header>
             <div class="logo-container">
-                <img src="{{ url_for('static', filename='logo3.png') }}" alt="Logo Espia WhatsApp" class="logo">
+                <img src="/static/logo3.png" alt="Logo Detetive WhatsApp" class="logo">
             </div>
-            <p class="slogan">Monitore conversas com segurança e discrição!</p>
+            <p class="slogan">Monitore as conversas do seu filho com segurança e discrição!</p>
         </header>
         <main>
             <section class="login-section">
-                <h2>Entre Agora e Comece a Monitorar</h2>
+                <h2>Entre agora e comece a monitorar</h2>
                 <p>Proteja quem você ama com nosso sistema avançado de monitoramento de WhatsApp. Cadastre-se hoje e tenha controle total!</p>
-                {% if erro %}
-                    <p class="erro">{{ erro }}</p>
-                {% endif %}
+                
                 <div class="cta-buttons">
                     <button class="btn-login" id="login-btn">Entrar</button>
-                    <a href="{{ url_for('register') }}" class="btn-register">Cadastre-se Agora</a>
+                    <a href="/register" class="btn-register">Cadastre-se Agora</a>
                 </div>
                 <p class="publicitario"><span class="highlight">Teste gratuitamente por 2 dias!</span> Monitore em minutos, proteja quem você ama com total discrição!</p>
             </section>
@@ -304,34 +303,34 @@ footer {
                 <h2>Como Funciona?</h2>
                 <div class="steps">
                     <div class="step">
-                        <img src="{{ url_for('static', filename='qrcode.png') }}" alt="QR Code">
+                        <img src="/static/qrcode.png" alt="QR Code">
                         <p>1. Escaneie o QR Code do WhatsApp do seu filho.</p>
                     </div>
                     <div class="step">
-                        <img src="{{ url_for('static', filename='messages.png') }}" alt="Mensagens">
+                        <img src="/static/messages.png" alt="Mensagens">
                         <p><strong>2. Receba no WhatsApp automaticamente todas as mensagens que ele enviar ou receber!</strong></p>
                     </div>
                 </div>
             </section>
             <section class="video-section">
-                <h2>Como Usar o Espia WhatsApp</h2>
+                <h2>Como usar o Detetiva WhatsApp?</h2>
                 <div class="video-container">
                     <video controls>
-                        <source src="{{ url_for('static', filename='explicativo.mp4') }}" type="video/mp4">
+                        <source src="/static/explicativo.mp4" type="video/mp4">
                         Seu navegador não suporta o elemento de vídeo.
                     </video>
                 </div>
             </section>
         </main>
         <footer>
-            <p>© 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+            <p>© 2025 Detetive WhatsApp. Todos os direitos reservados.</p>
         </footer>
     </div>
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
             <h2>Entrar</h2>
-            <form method="post" action="{{ url_for('login') }}" class="login-form">
+            <form method="post" action="/" class="login-form">
                 <label for="username">Seu número de WhatsApp (com DDD):</label>
                 <input type="text" name="username" id="username" required placeholder="+5512345678900">
                 <label for="password">Senha:</label>
@@ -345,7 +344,7 @@ footer {
         <div class="modal-content">
             <span class="close">×</span>
             <h2>Recuperar Senha</h2>
-            <form method="post" action="{{ url_for('forgot_password') }}" class="forgot-password-form">
+            <form method="post" action="/forgot_password" class="forgot-password-form">
                 <label for="whatsapp_pai">Seu número de WhatsApp (com DDD):</label>
                 <input type="text" name="whatsapp_pai" id="whatsapp_pai" required placeholder="+5512345678900">
                 <button type="submit" class="btn-recover">Enviar Nova Senha</button>
