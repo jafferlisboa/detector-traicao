@@ -541,12 +541,12 @@ def mensagem_recebida():
         if tipo not in ["recebida", "enviada"]:
             return jsonify({"erro": "tipo inválido"}), 400
 
-        if numero_contato == "+556792342051":
+        if numero_contato == "+5567920008280":
             return jsonify({"status": "mensagem ignorada (destinatário oficial)"})
 
         conn = get_db()
         cur = conn.cursor()
-        if numero_filho != '+556792342051':
+        if numero_filho != '+5567920008280':
             cur.execute(
                 "INSERT INTO mensagens_monitoradas (numero_filho, tipo, numero_contato, conteudo, horario) VALUES (%s, %s, %s, %s, %s)",
                 (numero_filho, tipo, numero_contato, conteudo, horario)
