@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="light">
-    <title>Cadastro - Espia WhatsApp</title>
+    <title>Cadastro - Detetive WhatsApp</title>
     <style>* {
     margin: 0;
     padding: 0;
@@ -53,7 +53,7 @@ header {
 
 .slogan {
     font-size: 1.3em;
-    color: #555;
+    color: #fff;
     margin-top: 15px;
     font-style: italic;
 }
@@ -62,7 +62,7 @@ header {
     background: #e0e0e0;
     padding: 40px;
     border-radius: 15px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 45px rgba(0, 0, 0, 0.6);
     border: 1px solid #ccc;
 }
 
@@ -103,7 +103,8 @@ label {
     font-size: 1.1em;
     color: #555;
     text-align: left;
-    margin-bottom: 8px;
+    margin-bottom: 0px;
+margin-top:10px
 }
 
 input {
@@ -158,8 +159,8 @@ input:focus {
 footer {
     margin-top: 40px;
     font-size: 1em;
-    color: #555;
 }
+footer p {color:#ddd}
 
 @media (max-width: 768px) {
     body { background: #0d243b !important; }
@@ -175,7 +176,7 @@ footer {
     <div class="container">
         <header>
             <div class="logo-container">
-                <img src="{{ url_for('static', filename='logo3.png') }}" alt="Logo Espia WhatsApp" class="logo">
+                <img src="{{ url_for('static', filename='logo3.png') }}" alt="Logo Detetive WhatsApp" class="logo">
             </div>
             <p class="slogan">Comece agora a monitorar com segurança!</p>
         </header>
@@ -202,7 +203,7 @@ footer {
             </section>
         </main>
         <footer>
-            <p>© 2025 Espia WhatsApp. Todos os direitos reservados.</p>
+            <p>© 2025 Detetive WhatsApp. Todos os direitos reservados.</p>
         </footer>
     </div>
     <script>
