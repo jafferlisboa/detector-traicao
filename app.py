@@ -306,7 +306,7 @@ def adicionar_filho():
 
     if not numero.startswith("+"):
         numero = f"+{numero}"
-    if not re.match(r"^\+\d{12,13}$", numero):
+    if not re.match(r"^\+\d{9,14}$", numero):
         conn = None
         try:
             conn = get_db()
